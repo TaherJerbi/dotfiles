@@ -52,6 +52,14 @@ local plugins = {
     version = "*", -- Use for stability; omit to use `main` branch for the latest features
     event = "VeryLazy",
   },
+  {
+    "nvim-tree/nvim-tree.lua",
+    version = "*",
+    lazy = false,
+    dependencies = {
+      "nvim-tree/nvim-web-devicons",
+    }
+  }
 }
 
 local opts = {}
