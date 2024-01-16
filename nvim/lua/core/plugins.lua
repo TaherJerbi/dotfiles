@@ -18,7 +18,8 @@ local plugins = {
     dependencies = { 'nvim-lua/plenary.nvim' }
   },
   -- Color scheme
-  { "catppuccin/nvim", name = "catppuccin", priority = 1000 },
+  -- { "catppuccin/nvim", name = "catppuccin", priority = 1000 },
+  { 'projekt0n/github-nvim-theme' },
   -- Status Line
   {
     'nvim-lualine/lualine.nvim',
