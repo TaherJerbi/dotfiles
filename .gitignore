@@ -1,0 +1,17 @@
+# Ignore everything
+*
+
+# Include .gitignore
+!/.gitignore
+
+# Include nvim config (and its contents)
+!/nvim/
+!/nvim/**
+
+# Include tmux config (and its contents)
+!/tmux/
+!/tmux/**
+# But ignore tmux/plugins (and its contents)
+/tmux/plugins/
+/tmux/plugins/**
+
