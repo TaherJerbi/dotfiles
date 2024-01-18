@@ -10,10 +10,6 @@ vim.keymap.set('n', '<leader>h', ':nohlsearch<CR>')
 vim.keymap.set('n', '<leader>k', ':cprev<CR>')
 vim.keymap.set('n', '<leader>j', ':cnext<CR>')
 
--- Explore
-vim.keymap.set('n', '<leader>x', ':Ex<CR>')
-vim.keymap.set('n', '<leader>vx', ':Vex<CR>')
-
 -- Hover
 vim.api.nvim_create_autocmd('LspAttach', {
   callback = function(args)
