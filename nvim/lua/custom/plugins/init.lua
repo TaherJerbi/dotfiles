@@ -2,8 +2,9 @@
 --  I promise not to create any merge conflicts in this directory :)
 --
 -- See the kickstart.nvim README for more information
+
 return {
-  {
+  { -- LazyGit
     'kdheepak/lazygit.nvim',
     cmd = {
       'LazyGit',
@@ -29,4 +30,62 @@ return {
       vim.g.lazygit_config_file_path = {} -- table of custom config file paths
     end,
   },
+  { -- copilot
+    'github/copilot.vim'
+  },
+  { -- git fugitive
+    'tpope/vim-fugitive'
+  },
+  { -- vim surround
+    'tpope/vim-surround'
+  },
+  {
+    'stevearc/conform.nvim',
+    config = function()
+      local slow_format_filetypes = { 'javascript', 'typescript', 'typescriptreact' }
+      require('conform').setup({
+        formatters_by_ft = {
+          javascript = { 'prettier' },
+          typescript = { 'prettier' },
+          typescriptreact = { 'prettier' },
+        },
+        format_on_save = function(bufnr)
+          if slow_format_filetypes[vim.bo[bufnr].filetype] then
+            return
+          end
+          local function on_format(err)
+            if err and err:match("timeout$") then
+              slow_format_filetypes[vim.bo[bufnr].filetype] = true
+            end
+          end
+
+          return { timeout_ms = 200, lsp_fallback = true }, on_format
+        end,
+
+        format_after_save = function(bufnr)
+          if not slow_format_filetypes[vim.bo[bufnr].filetype] then
+            return
+          end
+          return { lsp_fallback = true }
+        end,
+      })
+    end
+  },
+  {
+    'nvim-tree/nvim-tree.lua',
+    config = function()
+      require('nvim-tree').setup({
+        filters = {
+          git_ignored = false
+        },
+        view = {
+          side = "right",
+        }
+      })
+
+      vim.keymap.set('n', '<leader>tt', '<cmd>NvimTreeToggle<CR>')
+      vim.keymap.set('n', '<leader>tf', '<cmd>NvimTreeFindFile<CR>')
+      vim.keymap.set('n', '<leader>tc', '<cmd>NvimTreeCollapse<CR>')
+    end
+  }
 }
