@@ -42,12 +42,14 @@ return {
   {
     'stevearc/conform.nvim',
     config = function()
-      local slow_format_filetypes = { 'javascript', 'typescript', 'typescriptreact' }
+      local slow_format_filetypes = { 'javascript', 'typescript', 'typescriptreact', 'vue' }
+      local no_fallback_filetypes = { 'vue' }
       require('conform').setup({
         formatters_by_ft = {
-          javascript = { 'prettier' },
-          typescript = { 'prettier' },
-          typescriptreact = { 'prettier' },
+          javascript = { { "prettierd", "prettier" } },
+          typescript = { { "prettierd", "prettier" } },
+          typescriptreact = { { "prettierd", "prettier" } },
+          vue = { { "prettierd", "prettier" } },
         },
         format_on_save = function(bufnr)
           if slow_format_filetypes[vim.bo[bufnr].filetype] then
@@ -59,14 +61,15 @@ return {
             end
           end
 
-          return { timeout_ms = 200, lsp_fallback = true }, on_format
+          return { timeout_ms = 200, lsp_fallback = not no_fallback_filetypes[vim.bo[bufnr].filetype] }, on_format
         end,
 
         format_after_save = function(bufnr)
           if not slow_format_filetypes[vim.bo[bufnr].filetype] then
             return
           end
-          return { lsp_fallback = true }
+
+          return { lsp_fallback = not no_fallback_filetypes[vim.bo[bufnr].filetype] }
         end,
       })
     end
