@@ -7,6 +7,9 @@
 # Include nvim config (and its contents)
 !/nvim/
 !/nvim/**
+# Include karabiner config
+!/karabiner/
+!/karabiner/*
 
 # Include tmux config (and its contents)
 !/tmux/
@@ -14,4 +17,3 @@
 # But ignore tmux/plugins (and its contents)
 /tmux/plugins/
 /tmux/plugins/**
-
