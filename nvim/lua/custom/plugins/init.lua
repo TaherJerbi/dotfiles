@@ -21,11 +21,48 @@ return {
 
           -- custom mappings
           vim.keymap.set('n', '<leader>e', '<cmd>NvimTreeToggle<cr>')
+          vim.keymap.set('n', '<leader>fe', '<cmd>NvimTreeFindFile<cr>')
         end,
         view = {
+          width = 60,
           side = 'right',
         },
       }
     end,
+  },
+  { 'github/copilot.vim' },
+  {
+    'windwp/nvim-ts-autotag',
+    lazy = false,
+    config = function()
+      require('nvim-ts-autotag').setup {
+        opts = {
+          -- Defaults
+          enable_close = true, -- Auto close tags
+          enable_rename = true, -- Auto rename pairs of tags
+          enable_close_on_slash = false, -- Auto close on trailing </
+        },
+      }
+    end,
+  },
+  {
+    'kdheepak/lazygit.nvim',
+    lazy = true,
+    cmd = {
+      'LazyGit',
+      'LazyGitConfig',
+      'LazyGitCurrentFile',
+      'LazyGitFilter',
+      'LazyGitFilterCurrentFile',
+    },
+    -- optional for floating window border decoration
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+    },
+    -- setting the keybinding for LazyGit with 'keys' is recommended in
+    -- order to load the plugin when the command is run for the first time
+    keys = {
+      { '<leader>lg', '<cmd>LazyGit<cr>', desc = 'LazyGit' },
+    },
   },
 }
