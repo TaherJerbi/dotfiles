@@ -4,13 +4,32 @@ return {
     'mfussenegger/nvim-lint',
     event = { 'BufReadPre', 'BufNewFile' },
     config = function()
+      local lsp_util = require 'lspconfig.util'
+      local eslint = require('lint').linters.eslint_d
+
+      eslint.cwd = lsp_util.root_pattern('eslint.config.mjs', 'eslint.config.js', '.eslintrc.js', 'package.json', '.git')(vim.api.nvim_buf_get_name(0))
+
       local lint = require 'lint'
+
       lint.linters_by_ft = {
-        markdown = { 'markdownlint' },
         vue = { 'eslint_d' },
         typescript = { 'eslint_d' },
         javascript = { 'eslint_d' },
+        typescriptreact = { 'eslint_d' },
+        javascriptreact = { 'eslint_d' },
       }
+
+      -- Show linters for the current buffer's file type
+      vim.api.nvim_create_user_command('LintInfo', function()
+        local filetype = vim.bo.filetype
+        local linters = require('lint').linters_by_ft[filetype]
+
+        if linters then
+          print('Linters for ' .. filetype .. ': ' .. table.concat(linters, ', '))
+        else
+          print('No linters configured for filetype: ' .. filetype)
+        end
+      end, {})
 
       -- To allow other plugins to add linters to require('lint').linters_by_ft,
       -- instead set linters_by_ft like this:

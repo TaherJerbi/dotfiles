@@ -161,6 +161,10 @@ vim.opt.scrolloff = 10
 -- See `:help 'confirm'`
 vim.opt.confirm = true
 
+-- NOTE: Custom options
+vim.opt.wrap = true
+vim.opt.linebreak = true
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
@@ -170,6 +174,7 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
+vim.keymap.set('n', '<leader>df', vim.diagnostic.open_float, { desc = '[D]iagnostic [F]loat' })
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
@@ -186,6 +191,8 @@ vim.keymap.set('n', '<leader>j', '<cmd>cnext<return>')
 vim.keymap.set('n', '<leader>k', '<cmd>cprev<return>')
 -- Yank to clipboard
 vim.keymap.set('v', '<leader>y', '"+y')
+-- Follow Link
+vim.keymap.set('n', '<bs>', ':edit #<CR>', { desc = 'Back To Previous File' })
 
 -- TIP: Disable arrow keys in normal mode
 -- vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
@@ -483,6 +490,7 @@ require('lazy').setup({
       -- Automatically install LSPs and related tools to stdpath for Neovim
       -- Mason must be loaded before its dependents so we need to set it up here.
       -- NOTE: `opts = {}` is the same as calling `require('mason').setup({})`
+      -- MasonInstall eslint_d@13.1.2
       { 'mason-org/mason.nvim', version = '^1.0.0', opts = {} },
       { 'mason-org/mason-lspconfig.nvim', version = '^1.0.0' },
       'WhoIsSethDaniel/mason-tool-installer.nvim',
@@ -856,6 +864,7 @@ require('lazy').setup({
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         javascript = { 'prettierd', 'prettier', stop_after_first = true },
+        json = { 'prettierd', 'prettier', stop_after_first = true },
         typescript = { 'prettierd', 'prettier', stop_after_first = true },
         vue = { 'prettierd', 'prettier', stop_after_first = true },
       },
@@ -992,6 +1001,7 @@ require('lazy').setup({
         -- ...
       }
 
+      -- github_dark, github_dark_default, github_dark_dimmed, github_dark_high_contrast,
       vim.cmd.colorscheme 'github_dark_default'
     end,
   },
