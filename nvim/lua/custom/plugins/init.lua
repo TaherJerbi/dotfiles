@@ -3,7 +3,20 @@
 --
 -- See the kickstart.nvim README for more information
 return {
-  -- empty setup using defaults
+  {
+    'projekt0n/github-nvim-theme',
+    name = 'github-theme',
+    lazy = false, -- make sure we load this during startup if it is your main colorscheme
+    priority = 1000, -- make sure to load this before all the other start plugins
+    config = function()
+      require('github-theme').setup {
+        -- ...
+      }
+
+      -- github_dark, github_dark_default, github_dark_dimmed, github_dark_high_contrast,
+      vim.cmd.colorscheme 'github_dark_default'
+    end,
+  },
   {
     'nvim-tree/nvim-tree.lua',
     version = '*',
@@ -78,94 +91,12 @@ return {
         filetypes = {
           'md',
           'markdown',
-          'codecompanion',
         },
         ignore_buftypes = {},
-
-        condition = function(buffer)
-          local ft, bt = vim.bo[buffer].ft, vim.bo[buffer].bt
-
-          if bt == 'nofile' and ft == 'codecompanion' then
-            return true
-          elseif bt == 'nofile' then
-            return false
-          else
-            return true
-          end
-        end,
       },
     },
     keys = {
       { '<leader>m', '<cmd>Markview<cr>', desc = 'Markview' },
-    },
-  },
-  {
-    'jghauser/follow-md-links.nvim',
-    lazy = true,
-    ft = { 'markdown', 'md' },
-  },
-  {
-    'FabijanZulj/blame.nvim',
-    lazy = true,
-    keys = {
-      { '<leader>gb', '<cmd>BlameToggle virtual<cr>', desc = 'Toggle Blame' },
-    },
-    config = function()
-      require('blame').setup()
-    end,
-  },
-  {
-    'olimorris/codecompanion.nvim',
-    config = function()
-      -- Configure CodeCompanion plugin with Anthropic AI models for different interaction strategies
-      -- Enables AI-assisted coding with chat, inline suggestions, and command-line interactions
-      -- Uses Claude 3 models (Sonnet for chat, Haiku for inline and command strategies)
-      -- Provides keymaps for accepting/rejecting inline code suggestions
-      -- Integrates mini_diff for displaying code changes
-      require('codecompanion').setup {
-        display = {
-          diff = {
-            provider = 'mini_diff',
-          },
-        },
-        strategies = {
-          chat = {
-            adapter = {
-              name = 'anthropic',
-              model = 'claude-3-7-sonnet-latest',
-            },
-          },
-          inline = {
-            adapter = {
-              name = 'anthropic',
-              model = 'claude-3-5-haiku-latest',
-            },
-            keymaps = {
-              accept_change = {
-                modes = { n = 'ga' },
-                description = 'Accept the suggested change',
-              },
-              reject_change = {
-                modes = { n = 'gr' },
-                description = 'Reject the suggested change',
-              },
-            },
-          },
-          cmd = {
-            adapter = {
-              name = 'anthropic',
-              model = 'claude-3-5-haiku-latest',
-            },
-          },
-        },
-      }
-      vim.keymap.set({ 'n', 'v' }, '<C-a>', '<cmd>CodeCompanionActions<cr>', { noremap = true, silent = true })
-      vim.keymap.set({ 'n', 'v' }, '<LocalLeader>a', '<cmd>CodeCompanionChat Toggle<cr>', { noremap = true, silent = true })
-      vim.keymap.set('v', 'ga', '<cmd>CodeCompanionChat Add<cr>', { noremap = true, silent = true })
-    end,
-    dependencies = {
-      'nvim-lua/plenary.nvim',
-      'nvim-treesitter/nvim-treesitter',
     },
   },
   {
@@ -178,30 +109,81 @@ return {
       }
     end,
   },
+  { 'numToStr/Comment.nvim' },
   {
-    'numToStr/Comment.nvim',
+    'obsidian-nvim/obsidian.nvim',
+    version = '*', -- recommended, use latest release instead of latest commit
+    lazy = true,
+    ft = 'markdown',
+    -- Replace the above line with this if you only want to load obsidian.nvim for markdown files in your vault:
+    -- event = {
+    --   -- If you want to use the home shortcut '~' here you need to call 'vim.fn.expand'.
+    --   -- E.g. "BufReadPre " .. vim.fn.expand "~" .. "/my-vault/*.md"
+    --   -- refer to `:h file-pattern` for more examples
+    --   "BufReadPre path/to/my-vault/*.md",
+    --   "BufNewFile path/to/my-vault/*.md",
+    -- },
+    ---@module 'obsidian'
+    ---@type obsidian.config
     opts = {
-      -- add any options here
+      workspaces = {
+        {
+          name = 'work',
+          path = '~/vaults/work',
+        },
+      },
+
+      daily_notes = {
+        folder = 'daily',
+      },
+
+      ---@param title string|?
+      ---@return string
+      note_id_func = function(title)
+        -- Create note IDs in a Zettelkasten format with a timestamp and a suffix.
+        -- In this case a note with the title 'My new note' will be given an ID that looks
+        -- like '1657296016-my-new-note', and therefore the file name '1657296016-my-new-note.md'.
+        -- You may have as many periods in the note ID as you'd like—the ".md" will be added automatically
+        local suffix = ''
+        if title ~= nil then
+          -- If title is given, transform it into valid file name.
+          suffix = title:gsub(' ', '-'):gsub('[^A-Za-z0-9-]', ''):lower()
+        else
+          -- If title is nil, just add 4 random uppercase letters to the suffix.
+          for _ = 1, 4 do
+            suffix = suffix .. string.char(math.random(65, 90))
+          end
+        end
+        return tostring(os.time()) .. '-' .. suffix
+      end,
     },
   },
   {
-    'folke/noice.nvim',
-    event = 'VeryLazy',
-    dependencies = {
-      -- if you lazy-load any plugin below, make sure to add proper `module="..."` entries
-      'MunifTanjim/nui.nvim',
-      -- OPTIONAL:
-      --   `nvim-notify` is only needed, if you want to use the notification view.
-      --   If not available, we use `mini` as the fallback
-      'rcarriga/nvim-notify',
+    'folke/snacks.nvim',
+    priority = 1000,
+    lazy = false,
+    ---@type snacks.Config
+    opts = {
+      -- your configuration comes here
+      -- or leave it empty to use the default settings
+      -- refer to the configuration section below
+      notifier = {
+        enabled = true,
+      },
     },
-    config = function()
-      require('noice').setup {}
-
-      -- Noice keymaps with <leader>n prefix
-      vim.keymap.set('n', '<leader>nd', '<cmd>Noice dismiss<cr>', { desc = 'Dismiss Noice notifications' })
-      vim.keymap.set('n', '<leader>nl', '<cmd>Noice last<cr>', { desc = 'Noice Last' })
-      vim.keymap.set('n', '<leader>nh', '<cmd>Noice history<cr>', { desc = 'Noice History' })
-    end,
+    keys = {
+      {
+        '<leader>nd',
+        function()
+          require('snacks').notifier.hide()
+        end,
+      },
+      {
+        '<leader>nh',
+        function()
+          require('snacks').notifier.show_history()
+        end,
+      },
+    },
   },
 }
