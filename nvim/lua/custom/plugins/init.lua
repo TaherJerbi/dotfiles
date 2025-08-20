@@ -2,6 +2,7 @@
 --  I promise not to create any merge conflicts in this directory :)
 --
 -- See the kickstart.nvim README for more information
+vim.opt.conceallevel = 2
 return {
   {
     'projekt0n/github-nvim-theme',
@@ -81,25 +82,6 @@ return {
     },
   },
   {
-    'OXY2DEV/markview.nvim',
-    lazy = false,
-    dependencies = {
-      'saghen/blink.cmp',
-    },
-    opts = {
-      preview = {
-        filetypes = {
-          'md',
-          'markdown',
-        },
-        ignore_buftypes = {},
-      },
-    },
-    keys = {
-      { '<leader>m', '<cmd>Markview<cr>', desc = 'Markview' },
-    },
-  },
-  {
     'echasnovski/mini.diff',
     config = function()
       local diff = require 'mini.diff'
@@ -130,6 +112,10 @@ return {
         {
           name = 'work',
           path = '~/vaults/work',
+        },
+        {
+          name = 'hack',
+          path = '~/vaults/hack',
         },
       },
 
@@ -167,9 +153,9 @@ return {
       -- your configuration comes here
       -- or leave it empty to use the default settings
       -- refer to the configuration section below
-      notifier = {
-        enabled = true,
-      },
+      bigfile = { enabled = true },
+      notifier = { enabled = true },
+      input = { enabled = true },
     },
     keys = {
       {
