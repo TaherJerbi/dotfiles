@@ -142,6 +142,13 @@ return {
         end
         return tostring(os.time()) .. '-' .. suffix
       end,
+      -- Optional, alternatively you can customize the frontmatter data.
+      ---@return table
+      note_frontmatter_func = function(note)
+        local out = { tags = note.tags }
+
+        return out
+      end,
     },
   },
   {
