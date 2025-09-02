@@ -4,31 +4,13 @@
             "complex_modifications": {
                 "rules": [
                     {
-                        "manipulators": [
-                            {
-                                "description": "Change right_command to command+control+shift.",
-                                "from": {
-                                    "key_code": "right_command",
-                                    "modifiers": { "optional": ["any"] }
-                                },
-                                "to": [
-                                    {
-                                        "key_code": "left_shift",
-                                        "modifiers": ["left_command", "left_control"]
-                                    }
-                                ],
-                                "type": "basic"
-                            }
-                        ]
-                    },
-                    {
-                        "description": "Change right_command+hjkl to arrow keys",
+                        "description": "Change Custom Hyper Key +hjkl to arrow keys",
                         "manipulators": [
                             {
                                 "from": {
                                     "key_code": "h",
                                     "modifiers": {
-                                        "mandatory": ["right_command"],
+                                        "mandatory": ["left_command", "control", "shift"],
                                         "optional": ["any"]
                                     }
                                 },
@@ -39,7 +21,7 @@
                                 "from": {
                                     "key_code": "j",
                                     "modifiers": {
-                                        "mandatory": ["right_command"],
+                                        "mandatory": ["left_command", "control", "shift"],
                                         "optional": ["any"]
                                     }
                                 },
@@ -50,7 +32,7 @@
                                 "from": {
                                     "key_code": "k",
                                     "modifiers": {
-                                        "mandatory": ["right_command"],
+                                        "mandatory": ["left_command", "control", "shift"],
                                         "optional": ["any"]
                                     }
                                 },
@@ -61,11 +43,29 @@
                                 "from": {
                                     "key_code": "l",
                                     "modifiers": {
-                                        "mandatory": ["right_command"],
+                                        "mandatory": ["left_command", "control", "shift"],
                                         "optional": ["any"]
                                     }
                                 },
                                 "to": [{ "key_code": "right_arrow" }],
+                                "type": "basic"
+                            }
+                        ]
+                    },
+                    {
+                        "manipulators": [
+                            {
+                                "description": "Custom Hyper Key: Change right_command to command+control+shift.",
+                                "from": {
+                                    "key_code": "right_command",
+                                    "modifiers": { "optional": ["any"] }
+                                },
+                                "to": [
+                                    {
+                                        "key_code": "left_shift",
+                                        "modifiers": ["left_command", "left_control"]
+                                    }
+                                ],
                                 "type": "basic"
                             }
                         ]
