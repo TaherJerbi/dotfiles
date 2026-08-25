@@ -14,3 +14,9 @@
 # Include herdr config (and its contents)
 !/herdr/
 !/herdr/**
+
+# But ignore herdr runtime/state files
+/herdr/*.log
+/herdr/*.sock
+/herdr/.plugins.lock
+/herdr/session.json
