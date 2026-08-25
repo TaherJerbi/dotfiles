@@ -9,3 +9,4 @@ require('nvim-tree').setup {
 }
 
 vim.keymap.set('n', '<leader>e', '<cmd>NvimTreeToggle<cr>', { desc = 'Toggle file [E]xplorer' })
+vim.keymap.set('n', '<leader>E', '<cmd>NvimTreeFindFile<cr>', { desc = 'Focus current file in [E]xplorer' })

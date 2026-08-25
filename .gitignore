@@ -11,6 +11,20 @@
 !/karabiner/
 !/karabiner/*
 
+# Include fish config (and its contents)
+!/fish/
+!/fish/**
+
+# But ignore fish's machine-local universal variables state
+/fish/fish_variables
+
+# Include alacritty config (and its contents)
+!/alacritty/
+!/alacritty/**
+
+# But ignore alacritty's auto-generated config migration backups
+/alacritty/*.bak
+
 # Include herdr config (and its contents)
 !/herdr/
 !/herdr/**

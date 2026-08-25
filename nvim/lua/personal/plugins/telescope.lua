@@ -25,3 +25,6 @@ vim.keymap.set('n', '<leader><leader>', function()
     end,
   }
 end, { desc = '[ ] Find existing buffers' })
+
+-- Like <leader>sf, but also includes gitignored files.
+vim.keymap.set('n', '<leader>sF', function() builtin.find_files { hidden = true, no_ignore = true } end, { desc = '[S]earch [F]iles (All)' })
