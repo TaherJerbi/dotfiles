@@ -37,3 +37,9 @@
 /herdr/*.sock
 /herdr/.plugins.lock
 /herdr/session.json
+
+# But ignore machine-local fish overrides (secrets)
+/fish/conf.d/local.fish
+
+# But ignore machine-local alacritty overrides (shell path differs per host)
+/alacritty/local.toml

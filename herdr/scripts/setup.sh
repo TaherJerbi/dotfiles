@@ -26,7 +26,3 @@ if [ "${#missing[@]}" -gt 0 ]; then
 else
   echo "  All present: fzf jq zoxide eza bat"
 fi
-
-echo
-echo "Done. Remember to add the keybindings from README.md to"
-echo "~/.config/herdr/config.toml, then: herdr server reload-config"

@@ -1,6 +1,7 @@
 [general]
 working_directory = "None"
 live_config_reload = true
+import = ["~/.config/alacritty/local.toml"]
 
 [env]
 TERM = "xterm-256color"

@@ -23,22 +23,3 @@ workspace switching.
 ```
 
 Symlinks the scripts into `~/.local/bin`.
-
-Then add this to `~/.config/herdr/config.toml` (adjust the prefix key to
-taste) and run `herdr server reload-config`:
-
-```toml
-[keys]
-last_pane = "prefix+l"
-
-[ui]
-prompt_new_tab_name = false
-
-[[keys.command]]
-key = "prefix+f"
-type = "popup"
-command = "herdr-workspace-switcher"
-description = "workspace / directory switcher"
-width = "70%"
-height = "70%"
-```
