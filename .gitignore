@@ -4,6 +4,9 @@
 # Include .gitignore
 !/.gitignore
 
+# Include the dependency-check/install script
+!/setup.sh
+
 # Include nvim config (and its contents)
 !/nvim/
 !/nvim/**
