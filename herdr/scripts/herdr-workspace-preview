@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Preview helper for herdr-workspace-switcher's fzf pane.
+# Arg is one raw picker line: "<kind>\x01<payload>\x01<display>".
+set -euo pipefail
+
+sep=$'\x01'
+line="${1:-}"
+kind=$(cut -d "$sep" -f1 <<<"$line")
+payload=$(cut -d "$sep" -f2 <<<"$line")
+
+if [ "$kind" = ws ]; then
+  active_tab=$(herdr workspace get "$payload" 2>/dev/null | jq -r '.result.workspace.active_tab_id // empty')
+  pane=""
+  if [ -n "$active_tab" ]; then
+    pane=$(herdr pane list --workspace "$payload" 2>/dev/null \
+      | jq -r --arg t "$active_tab" '
+          [.result.panes[] | select(.tab_id == $t)] as $ps
+          | (($ps | map(select(.focused)) | .[0]) // $ps[0] // empty).pane_id // empty
+        ')
+  fi
+  if [ -n "$pane" ]; then
+    herdr pane read "$pane" --source recent-unwrapped --lines 200 --format ansi 2>/dev/null
+  else
+    echo "(no live pane to preview)"
+  fi
+else
+  printf '\033[1;34m%s\033[0m\n\n' "$payload"
+  eza -la --color=always --icons=auto --group-directories-first "$payload" 2>/dev/null \
+    || ls -la --color=always "$payload"
+  readme=$(find "$payload" -maxdepth 1 -iname 'readme*' -type f | head -1)
+  if [ -n "$readme" ]; then
+    printf '\n\033[2m--- %s ---\033[0m\n' "$(basename "$readme")"
+    bat --color=always --style=plain --line-range=:40 "$readme" 2>/dev/null || cat "$readme"
+  fi
+fi

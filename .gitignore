@@ -11,17 +11,6 @@
 !/karabiner/
 !/karabiner/*
 
-# Include tmux config (and its contents)
-!/tmux/
-!/tmux/**
-
-!/tmuxinator/
-!/tmuxinator/**
-
-# Sesh
-!/sesh/
-!/sesh/**
-
-# But ignore tmux/plugins (and its contents)
-/tmux/plugins/
-/tmux/plugins/**
+# Include herdr config (and its contents)
+!/herdr/
+!/herdr/**

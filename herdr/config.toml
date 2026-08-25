@@ -1,0 +1,29 @@
+# herdr configuration
+
+[theme]
+name = "terminal"
+
+[keys]
+# Prefix key to enter prefix mode (default: "ctrl+b")
+prefix = "ctrl+z"
+
+# Jump back to the last focused pane (unset by default)
+last_pane = "prefix+l"
+
+# Don't prompt for a tab name on creation; tabs get their auto-numbered label
+[ui]
+prompt_new_tab_name = false
+
+# Play sounds when agents change state in background workspaces
+[ui.sound]
+enabled = false
+
+# sesh-style picker: fuzzy-find an open workspace or a zoxide-known
+# directory; creates or focuses a workspace there.
+[[keys.command]]
+key = "prefix+f"
+type = "popup"
+command = "herdr-workspace-switcher"
+description = "workspace / directory switcher"
+width = "70%"
+height = "70%"

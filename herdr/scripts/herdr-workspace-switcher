@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Popup command for herdr: fuzzy-pick an open workspace or a zoxide-known
+# directory, then focus that workspace or create a new one there.
+set -euo pipefail
+
+sep=$'\x01'
+
+workspaces=$(herdr workspace list | jq -r --arg s "$sep" '
+  .result.workspaces[]
+  | ["ws", .workspace_id, "  " + .label + "  (open)"]
+  | join($s)
+')
+
+dirs=$(zoxide query -l 2>/dev/null | awk -v s="$sep" '{ print "dir" s $0 s "  " $0 }')
+
+selection=$(
+  { [ -n "$workspaces" ] && printf '%s\n' "$workspaces"
+    [ -n "$dirs" ] && printf '%s\n' "$dirs"
+  } | fzf --delimiter="$sep" --with-nth=3 --prompt="workspace/dir> " \
+      --ansi --preview 'herdr-workspace-preview {}' --preview-window=right:55%:wrap
+)
+
+[ -z "$selection" ] && exit 0
+
+kind=$(cut -d "$sep" -f1 <<<"$selection")
+payload=$(cut -d "$sep" -f2 <<<"$selection")
+
+if [ "$kind" = ws ]; then
+  herdr workspace focus "$payload" >/dev/null
+else
+  herdr workspace create --cwd "$payload" --label "$(basename "$payload")" --focus >/dev/null
+fi

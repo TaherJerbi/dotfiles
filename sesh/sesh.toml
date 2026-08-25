@@ -1,3 +1,0 @@
-[default_session]
-startup_command = "tmuxinator start default_project path={} || nvim ."
-preview_command = "eza --all --git --icons --color=always {}"
