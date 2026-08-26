@@ -1,0 +1,3 @@
+action=[clipboard]
+typer=ydotool
+clipboarder=wl-copy

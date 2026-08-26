@@ -15,6 +15,7 @@ opacity = 1.0
 title = "Alacritty"
 class = { instance = "Alacritty", general = "Alacritty" }
 decorations_theme_variant = "Dark"
+startup_mode = "Maximized"
 
 [scrolling]
 history = 10000

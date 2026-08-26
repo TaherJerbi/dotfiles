@@ -150,6 +150,17 @@ EOF
   fi
 fi
 
+# rofimoji only ever reads ~/.config/rofimoji.rc directly (it has no notion of
+# a config subfolder), but the real file lives in rofimoji/rofimoji.rc to
+# match this repo's per-app-folder layout. Symlink it into place; the symlink
+# itself isn't tracked in git since it's a generated, machine-local artifact.
+ROFIMOJI_LINK="$REPO_DIR/rofimoji.rc"
+if [ -f "$REPO_DIR/rofimoji/rofimoji.rc" ] && [ ! -e "$ROFIMOJI_LINK" ]; then
+  ln -s rofimoji/rofimoji.rc "$ROFIMOJI_LINK"
+  echo
+  echo "Symlinked rofimoji.rc -> rofimoji/rofimoji.rc"
+fi
+
 # Symlinks herdr's own scripts and checks its own dependencies (fzf, jq, eza, bat).
 if [ -x "$REPO_DIR/herdr/scripts/setup.sh" ] && command -v herdr >/dev/null 2>&1; then
   echo

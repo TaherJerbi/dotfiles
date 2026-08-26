@@ -38,6 +38,10 @@
 /herdr/.plugins.lock
 /herdr/session.json
 
+# Include rofimoji config (and its contents)
+!/rofimoji/
+!/rofimoji/**
+
 # But ignore machine-local fish overrides (secrets)
 /fish/conf.d/local.fish
 
