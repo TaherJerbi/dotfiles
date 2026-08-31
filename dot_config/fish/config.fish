@@ -40,3 +40,7 @@ end
 if command -v direnv >/dev/null; and not functions -q __direnv_export_eval
     direnv hook fish | source
 end
+
+# --- host autostart ---------------------------------------------------------
+# Last, so anything it exec's (herdr) inherits the PATH built above.
+functions -q dots_host_autostart; and dots_host_autostart
