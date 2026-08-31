@@ -1,0 +1,7 @@
+# Files this repo used to install, removed on apply so other machines get
+# cleaned up too. Their replacements live in .chezmoiscripts/ and
+# dot_config/setup/doctor.sh.
+.config/setup/setup.sh
+.config/setup/macos-setup.sh
+.config/setup/cachyos-setup.sh
+.config/herdr/scripts/setup.sh
