@@ -67,9 +67,10 @@ follow `.pkgfamily`.
 ## Packages
 
 `.chezmoidata/packages.yaml` lists the required tools; `doctor.sh` reads the
-same list. A tool with a `mise:` field comes from [mise](https://mise.jdx.dev)
-and is identical on every machine; the rest come from `.pkgfamily`'s package
-manager. Two scripts split along that line:
+same list. [mise](https://mise.jdx.dev) installs a tool unless the entry says
+`system: true`, and knows it by `cmd` unless a `mise:` key overrides the name —
+so most entries are the one line naming the command. Two scripts split along
+the `system:` line:
 
 - `.chezmoiscripts/run_onchange_before_10-packages.sh.tmpl` installs the six
   tools mise has no entry for — `git`, `make`, `cc`, `unzip`, `fish`,

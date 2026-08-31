@@ -27,10 +27,14 @@ packagemanagers:
     name: apk
     install: sudo apk add
 
+# mise installs a tool unless it says `system: true`, and knows it by `cmd`
+# unless `mise` overrides that name -- so most entries are one line.
+#
 #   cmd         what must end up on PATH
-#   mise        mise's registry name for it; its presence means mise installs
-#               it, and every field below except deps/hosts/minversion is then
-#               unused. Confirm a name with `mise registry <name>`.
+#   system      mise has no entry for it; the package manager provides it, and
+#               pkg/cask apply. Check with `mise registry <cmd>` before adding.
+#   mise        mise's name for it, where that differs from cmd. May be a
+#               backend spec (ubi:owner/repo) to bypass the registry.
 #   version     what to pin it to in mise.toml; "latest" if absent
 #   deps        other tools here that this one needs at runtime
 #   hosts       machine identities to install it on; everywhere if absent
@@ -39,17 +43,23 @@ packagemanagers:
 #   minversion  floor this repo's configs assume; reported by doctor.sh, not
 #               enforced -- mise's `latest` clears every floor we have
 tools:
-  # --- system packages: not in mise's registry ------------------------------
+  # --- not in mise's registry ----------------------------------------------
   - cmd: git
+    system: true
   - cmd: make
+    system: true
   - cmd: unzip
+    system: true
   - cmd: cc
+    system: true
     pkg:
       default: gcc
   - cmd: fish
+    system: true
     deps: [lazygit, zoxide]
     hosts: [macos, cachyos]
   - cmd: alacritty
+    system: true
     cask: true
     hosts: [macos, cachyos]
 
@@ -57,27 +67,18 @@ tools:
   - cmd: rg
     mise: ripgrep
   - cmd: fd
-    mise: fd
   - cmd: lazygit
-    mise: lazygit
   - cmd: zoxide
-    mise: zoxide
   - cmd: nvim
     mise: neovim
     deps: [git, make, unzip, cc, rg, fd, lazygit, tree-sitter]
     # Below 0.12 init.lua aborts with "Invalid 'event': 'PackChanged'".
     minversion: "0.12"
   - cmd: tree-sitter
-    mise: tree-sitter
   - cmd: fzf
-    mise: fzf
   - cmd: jq
-    mise: jq
   - cmd: eza
-    mise: eza
   - cmd: bat
-    mise: bat
   - cmd: herdr
-    mise: herdr
     deps: [zoxide, fzf, jq, eza, bat]
     hosts: [macos, cachyos]

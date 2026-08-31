@@ -18,7 +18,7 @@ check() { if have "$1"; then report "$1" ok "$2"; else report "$1" MISSING "$2";
 # cmd|mise name, empty for a system package|minimum version|what needs it
 REQUIRED="
 {{- range $tools }}
-{{ .cmd }}|{{ dig "mise" "" . }}|{{ dig "minversion" "" . }}|{{- $c := .cmd }}{{ $needs := list }}{{ range $tools }}{{ if has $c (dig "deps" (list) .) }}{{ $needs = append $needs .cmd }}{{ end }}{{ end }}{{ join ", " $needs }}
+{{ .cmd }}|{{ if not (dig "system" false .) }}{{ dig "mise" .cmd . }}{{ end }}|{{ dig "minversion" "" . }}|{{- $c := .cmd }}{{ $needs := list }}{{ range $tools }}{{ if has $c (dig "deps" (list) .) }}{{ $needs = append $needs .cmd }}{{ end }}{{ end }}{{ join ", " $needs }}
 {{- end }}
 "
 

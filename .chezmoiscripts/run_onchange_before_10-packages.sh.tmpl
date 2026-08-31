@@ -31,7 +31,7 @@ install_pkgs() { :; }
 DEPS="
 {{- range $tools }}
 {{- $cask := and (hasKey . "cask") (eq $fam "brew") -}}
-{{- if not (or (hasKey . "mise") $cask) }}
+{{- if and (dig "system" false .) (not $cask) }}
 {{ .cmd }}|{{ if hasKey . "pkg" }}{{ dig $fam (dig "default" .cmd .pkg) .pkg }}{{ else }}{{ .cmd }}{{ end }}|{{- $c := .cmd }}{{ $needs := list }}{{ range $tools }}{{ if has $c (dig "deps" (list) .) }}{{ $needs = append $needs .cmd }}{{ end }}{{ end }}{{ join ", " $needs }}
 {{- end }}
 {{- end }}

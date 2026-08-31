@@ -7,8 +7,8 @@ set -euo pipefail
 {{/* The rendered tool list, so editing .chezmoidata/packages.yaml re-runs this.
      chezmoi hashes this file's contents, and it would otherwise never change. */ -}}
 {{- range .tools }}
-{{-   if and (hasKey . "mise") (or (not (hasKey . "hosts")) (has $.host .hosts)) }}
-# tool: {{ .mise }} {{ dig "version" "latest" . }}
+{{-   if and (not (dig "system" false .)) (or (not (hasKey . "hosts")) (has $.host .hosts)) }}
+# tool: {{ dig "mise" .cmd . }} {{ dig "version" "latest" . }}
 {{-   end }}
 {{- end }}
 

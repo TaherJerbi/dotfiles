@@ -11,7 +11,7 @@
 
 [tools]
 {{- range .tools }}
-{{-   if and (hasKey . "mise") (or (not (hasKey . "hosts")) (has $.host .hosts)) }}
-{{ .mise }} = {{ dig "version" "latest" . | quote }}
+{{-   if and (not (dig "system" false .)) (or (not (hasKey . "hosts")) (has $.host .hosts)) }}
+{{ dig "mise" .cmd . | quote }} = {{ dig "version" "latest" . | quote }}
 {{-   end }}
 {{- end }}
