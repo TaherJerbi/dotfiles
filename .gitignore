@@ -4,8 +4,12 @@
 # Include .gitignore
 !/.gitignore
 
-# Include the dependency-check/install script
-!/setup.sh
+# Include the top-level README
+!/README.md
+
+# Include the dependency-check/install scripts (shared + per-machine)
+!/setup/
+!/setup/**
 
 # Include nvim config (and its contents)
 !/nvim/
@@ -44,6 +48,11 @@
 
 # But ignore machine-local fish overrides (secrets)
 /fish/conf.d/local.fish
+
+# Ignore the machine identity file (one word: macos, cachyos, parrotos, ...).
+# It's per-machine by definition; ./setup.sh prompts for it.
+# Note the per-host configs it selects, /fish/conf.d/host/*.fish, ARE tracked.
+/host
 
 # But ignore machine-local alacritty overrides (shell path differs per host)
 /alacritty/local.toml

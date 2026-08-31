@@ -38,7 +38,7 @@ plain ASCII shortcut.
    sudo usermod -aG ydotool "$USER"   # group name may vary by system
    ```
 
-4. Run `../setup.sh` from the repo root — it symlinks `rofimoji.rc` here into
+4. Run `../setup/setup.sh` from the repo root — it symlinks `rofimoji.rc` here into
    `~/.config/rofimoji.rc`, which is the only place rofimoji looks for it.
 
 5. In System Settings → Shortcuts, disable KDE's own Meta+. emoji-picker
