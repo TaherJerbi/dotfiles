@@ -136,12 +136,18 @@ $CASKS
 EOF
 {{ end -}}
 
-# Debian names the binary fdfind; nvim and fish both call it fd.
-if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
+# Debian renames some binaries to avoid clashes (fd -> fdfind, bat -> batcat);
+# this config and its scripts call them by their usual names.
+while IFS='|' read -r cmd alt; do
+  [ -z "$cmd" ] && continue
+  command -v "$cmd" >/dev/null 2>&1 && continue
+  command -v "$alt" >/dev/null 2>&1 || continue
   mkdir -p "$HOME/.local/bin"
-  ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
-  echo "Linked fdfind -> ~/.local/bin/fd"
-fi
+  ln -sf "$(command -v "$alt")" "$HOME/.local/bin/$cmd"
+  echo "Linked $alt -> ~/.local/bin/$cmd"
+done <<EOF
+$ALTS
+EOF
 
 # First version-looking token of `<cmd> --version`, e.g. 0.12.5.
 version_of() {

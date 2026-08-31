@@ -55,10 +55,6 @@ EOF
 
 echo
 echo "Optional / not package-managed..."
-for cmd in fzf jq eza bat; do
-  check "$cmd" "herdr workspace switcher"
-done
-
 case "$(uname -s)" in
   Darwin)
     check pbcopy "'\"+y' clipboard yank in nvim"

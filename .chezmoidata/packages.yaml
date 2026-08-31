@@ -105,6 +105,16 @@ tools:
   - cmd: alacritty
     reason: this alacritty config
     cask: true
+  - cmd: fzf
+    reason: herdr workspace switcher
+  - cmd: jq
+    reason: herdr workspace switcher
+  - cmd: eza
+    reason: herdr workspace switcher, directory preview
+  - cmd: bat
+    reason: herdr workspace switcher, README preview
+    # Debian ships the binary as batcat, to avoid clashing with bacula-console.
+    alt: batcat
   - cmd: herdr
     reason: the multiplexer fish execs into; herdr/config.toml and its scripts
     manual: [arch, debian, fedora, suse, alpine]

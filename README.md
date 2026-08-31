@@ -32,9 +32,8 @@ On a machine set up before `.osid`/`.pkgfamily` existed, run `chezmoi init`
 once to re-render the config — templates error until it has them, and the
 identity prompt keeps the answer already stored.
 
-`~/.config/setup/doctor.sh` reports on the tools the configs need, including
-the optional ones chezmoi doesn't install (fzf, jq, eza, bat, clipboard,
-Karabiner-Elements).
+`~/.config/setup/doctor.sh` reports on the tools the configs need, plus the
+few chezmoi doesn't install (a clipboard tool, Karabiner-Elements).
 
 ## Per-machine config
 
