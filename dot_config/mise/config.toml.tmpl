@@ -1,0 +1,17 @@
+# mise's global tool list, generated from .chezmoidata/packages.yaml -- edit
+# there, not here. Every tool with a `mise:` field lands below; the rest come
+# from this machine's package manager via chezmoi's package script.
+#
+# `mise install` runs from .chezmoiscripts/run_onchange_after_20-mise.sh.tmpl.
+#
+# chezmoi owns this file, so `mise use -g` writes here and the next
+# `chezmoi apply` reverts it. Add tools to packages.yaml instead.
+#
+#   ~/.config/mise/config.toml
+
+[tools]
+{{- range .tools }}
+{{-   if and (not (dig "system" false .)) (or (not (hasKey . "hosts")) (has $.host .hosts)) }}
+{{ dig "mise" .cmd . | quote }} = {{ dig "version" "latest" . | quote }}
+{{-   end }}
+{{- end }}

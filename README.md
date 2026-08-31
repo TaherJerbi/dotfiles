@@ -66,18 +66,25 @@ follow `.pkgfamily`.
 
 ## Packages
 
-`.chezmoidata/packages.yaml` lists the required tools and how to install them
-per `.pkgfamily`; `.chezmoiscripts/run_onchange_before_10-packages.sh.tmpl`
-resolves it for the machine at hand, and `doctor.sh` reads the same list.
+`.chezmoidata/packages.yaml` lists the required tools; `doctor.sh` reads the
+same list. [mise](https://mise.jdx.dev) installs a tool unless the entry says
+`system: true`, and knows it by `cmd` unless a `mise:` key overrides the name —
+so most entries are the one line naming the command. Two scripts split along
+the `system:` line:
 
-Anything a distro doesn't package — nvim, tree-sitter, lazygit and herdr on
-Debian — is either pinned to a GitHub `release` in that file, installed into
-`~/.local` without sudo (bare binaries in `~/.local/bin`, archives that need
-their tree in `~/.local/opt/<tool>`), or handed to upstream's own `installer`
-command, as herdr is. Bump `release.version` by hand to upgrade. A tool with a
-`minversion` gets reinstalled when what's on `PATH` is older (Debian's neovim
-is far below the 0.12 this nvim config needs). A distro whose family isn't
-recognised installs nothing and reports what's missing.
+- `.chezmoiscripts/run_onchange_before_10-packages.sh.tmpl` installs the six
+  tools mise has no entry for — `git`, `make`, `cc`, `unzip`, `fish`,
+  `alacritty` — and mise itself. A distro whose family isn't recognised
+  installs nothing and reports what's missing.
+- `.chezmoiscripts/run_onchange_after_20-mise.sh.tmpl` runs `mise install`
+  against the generated `~/.config/mise/config.toml`. It has to be an `after`
+  script: chezmoi writes that config while applying the source state, which is
+  after the before-scripts have run.
+
+`mise` versions are `latest` unless a tool sets `version:`, so upgrading is
+`mise upgrade` rather than a hand-edited URL. `minversion` survives as a floor
+`doctor.sh` reports; nothing enforces it, because mise's `latest` clears every
+floor this repo has.
 
 ## Machine-local files
 

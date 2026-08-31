@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Reports on the tools this repo's configs rely on; installs nothing. The
 # required list comes from the same .chezmoidata/packages.yaml as the install
-# script, .chezmoiscripts/run_onchange_before_10-packages.sh.tmpl.
+# scripts, .chezmoiscripts/run_onchange_before_10-packages.sh.tmpl (system
+# packages) and run_onchange_after_20-mise.sh.tmpl (everything else).
 #
 #   ~/.config/setup/doctor.sh
 set -euo pipefail
@@ -14,10 +15,10 @@ check() { if have "$1"; then report "$1" ok "$2"; else report "$1" MISSING "$2";
 {{- range .tools }}
 {{-   if or (not (hasKey . "hosts")) (has $.host .hosts) }}{{ $tools = append $tools . }}{{ end }}
 {{- end }}
-# cmd|alternative binary name|minimum version|what needs it
+# cmd|mise name, empty for a system package|minimum version|what needs it
 REQUIRED="
 {{- range $tools }}
-{{ .cmd }}|{{ dig "alt" "" . }}|{{ dig "minversion" "" . }}|{{- $c := .cmd }}{{ $needs := list }}{{ range $tools }}{{ if has $c (dig "deps" (list) .) }}{{ $needs = append $needs .cmd }}{{ end }}{{ end }}{{ join ", " $needs }}
+{{ .cmd }}|{{ if not (dig "system" false .) }}{{ dig "mise" .cmd . }}{{ end }}|{{ dig "minversion" "" . }}|{{- $c := .cmd }}{{ $needs := list }}{{ range $tools }}{{ if has $c (dig "deps" (list) .) }}{{ $needs = append $needs .cmd }}{{ end }}{{ end }}{{ join ", " $needs }}
 {{- end }}
 "
 
@@ -29,7 +30,18 @@ if [ -r /etc/os-release ]; then
   echo "Distribution:     ${PRETTY_NAME:-${ID:-unknown}}"
 fi
 echo
-echo "Required (installed by chezmoi's package script), and what needs it..."
+
+# Most tools live behind mise, so a shell that never activated it would report
+# everything missing.
+PATH="$HOME/.local/bin:$PATH"
+if have mise; then
+  report mise ok "$(mise --version 2>/dev/null | head -1)"
+  PATH="${MISE_DATA_DIR:-$HOME/.local/share/mise}/shims:$PATH"
+else
+  report mise MISSING "installs every tool marked (mise) below"
+fi
+echo
+
 version_of() {
   # || true: a tool with no version output must not trip `set -e`.
   "$1" --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1 || true
@@ -39,23 +51,30 @@ version_lt() {
   [ "$(printf '%s\n%s\n' "$1" "$2" | sort -t. -k1,1n -k2,2n -k3,3n | head -1)" = "$1" ]
 }
 
-while IFS='|' read -r cmd alt want needs; do
+echo "Required, and what needs it..."
+while IFS='|' read -r cmd misename want needs; do
   [ -z "$cmd" ] && continue
+  # Where it should have come from, so a missing one points at the right script.
+  src="${misename:+(mise) }"
   if have "$cmd"; then
     ver="$(version_of "$cmd")"
     if [ -n "$want" ] && [ -n "$ver" ] && version_lt "$ver" "$want"; then
-      report "$cmd" "TOO OLD" "have $ver, need >= $want"
+      report "$cmd" "TOO OLD" "${src}have $ver, need >= $want"
     else
-      report "$cmd" ok "$needs"
+      report "$cmd" ok "${src}${needs}"
     fi
-  elif [ -n "$alt" ] && have "$alt"; then
-    report "$cmd" "as $alt" "linked to ~/.local/bin/$cmd"
   else
-    report "$cmd" MISSING "$needs"
+    report "$cmd" MISSING "${src}${needs}"
   fi
 done <<EOF
 $REQUIRED
 EOF
+
+if have mise; then
+  echo
+  echo "mise tools with a newer release available..."
+  mise outdated 2>/dev/null || echo "  (none, or mise could not check)"
+fi
 
 echo
 echo "Optional / not package-managed..."

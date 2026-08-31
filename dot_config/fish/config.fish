@@ -27,6 +27,12 @@ set -gx ESLINT_D_ROOT auto
 alias lg lazygit
 
 # --- tools ------------------------------------------------------------------
+# mise provides most of what follows (rg, fd, nvim, ...), so it activates
+# first. Shims stay on PATH for non-fish callers; see run_onchange_after_20.
+if command -v mise >/dev/null
+    mise activate fish | source
+end
+
 if command -v zoxide >/dev/null
     zoxide init fish | source
 end
