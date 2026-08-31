@@ -4,7 +4,14 @@
 # ~/.config/setup/doctor.sh.
 set -euo pipefail
 {{ $fam := .pkgfamily -}}
-{{ $pm := dig $fam (dict) .packagemanagers }}
+{{ $pm := dig $fam (dict) .packagemanagers -}}
+{{/* Tools this host wants: everything without a `hosts` list, plus the ones
+     naming it. */}}
+{{- $tools := list }}
+{{- range .tools }}
+{{-   if or (not (hasKey . "hosts")) (has $.host .hosts) }}{{ $tools = append $tools . }}{{ end }}
+{{- end }}
+
 # Host: {{ .host }}   osid: {{ .osid }}   packages: {{ $fam | default "unknown -- no package manager" }}
 PM={{ dig "name" "" $pm | quote }}
 {{ if hasKey $pm "refresh" -}}
@@ -18,44 +25,44 @@ install_pkgs() { {{ $pm.install }} "$@"; }
 install_pkgs() { :; }
 {{- end }}
 
-# cmd|package|reason
+# cmd|package|what needs it
 DEPS="
-{{- range .tools }}
+{{- range $tools }}
 {{- $manual := and (hasKey . "manual") (has $fam .manual) -}}
 {{- $cask := and (hasKey . "cask") (eq $fam "brew") -}}
 {{- if not (or $manual $cask) }}
-{{ .cmd }}|{{ if hasKey . "pkg" }}{{ dig $fam (dig "default" .cmd .pkg) .pkg }}{{ else }}{{ .cmd }}{{ end }}|{{ .reason }}
+{{ .cmd }}|{{ if hasKey . "pkg" }}{{ dig $fam (dig "default" .cmd .pkg) .pkg }}{{ else }}{{ .cmd }}{{ end }}|{{- $c := .cmd }}{{ $needs := list }}{{ range $tools }}{{ if has $c (dig "deps" (list) .) }}{{ $needs = append $needs .cmd }}{{ end }}{{ end }}{{ join ", " $needs }}
 {{- end }}
 {{- end }}
 "
 
-# cmd|url|binary inside the archive|reason -- not in this machine's repos, or
+# cmd|url|binary inside the archive|what needs it -- not in this machine's repos, or
 # too old there, so these come from a GitHub release. An empty third field
 # means the download is the bare binary.
 RELEASES="
-{{- range .tools }}
+{{- range $tools }}
 {{- if and (hasKey . "release") (has $fam (dig "manual" (list) .)) }}
 {{- $r := .release }}
 {{- $arch := dig $.chezmoi.arch "" $r.arch }}
-{{ .cmd }}|{{ $r.url | replace "{version}" $r.version | replace "{plainversion}" (trimPrefix "v" $r.version) | replace "{arch}" $arch }}|{{ if hasKey $r "bin" }}{{ $r.bin | replace "{arch}" $arch }}{{ end }}|{{ .reason }}
+{{ .cmd }}|{{ $r.url | replace "{version}" $r.version | replace "{plainversion}" (trimPrefix "v" $r.version) | replace "{arch}" $arch }}|{{ if hasKey $r "bin" }}{{ $r.bin | replace "{arch}" $arch }}{{ end }}|{{- $c := .cmd }}{{ $needs := list }}{{ range $tools }}{{ if has $c (dig "deps" (list) .) }}{{ $needs = append $needs .cmd }}{{ end }}{{ end }}{{ join ", " $needs }}
 {{- end }}
 {{- end }}
 "
 
 # Tools whose upstream ships its own installer. A case, not a table: these
 # commands contain the pipes the tables are split on.
-# cmd|reason
+# cmd|what needs it
 INSTALLERS="
-{{- range .tools }}
+{{- range $tools }}
 {{- if and (hasKey . "installer") (has $fam (dig "manual" (list) .)) }}
-{{ .cmd }}|{{ .reason }}
+{{ .cmd }}|{{- $c := .cmd }}{{ $needs := list }}{{ range $tools }}{{ if has $c (dig "deps" (list) .) }}{{ $needs = append $needs .cmd }}{{ end }}{{ end }}{{ join ", " $needs }}
 {{- end }}
 {{- end }}
 "
 
 run_installer() {
   case "$1" in
-{{- range .tools }}
+{{- range $tools }}
 {{- if hasKey . "installer" }}
     {{ .cmd }}) {{ .installer }} ;;
 {{- end }}
@@ -65,7 +72,7 @@ run_installer() {
 
 # cmd|minimum acceptable version
 MINVERSIONS="
-{{- range .tools }}
+{{- range $tools }}
 {{- if hasKey . "minversion" }}
 {{ .cmd }}|{{ .minversion }}
 {{- end }}
@@ -74,7 +81,7 @@ MINVERSIONS="
 
 # cmd|alternative binary name
 ALTS="
-{{- range .tools }}
+{{- range $tools }}
 {{- if hasKey . "alt" }}
 {{ .cmd }}|{{ .alt }}
 {{- end }}
@@ -83,13 +90,15 @@ ALTS="
 
 {{ if eq $fam "brew" -}}
 CASKS="
-{{- range .tools }}
+{{- range $tools }}
 {{- if hasKey . "cask" }}
 {{ .cmd }}|{{ if hasKey . "pkg" }}{{ dig $fam (dig "default" .cmd .pkg) .pkg }}{{ else }}{{ .cmd }}{{ end }}
 {{- end }}
 {{- end }}
 "
 {{ end }}
+report_missing() { echo "missing: $1${2:+ (needed by $2)}"; }
+
 have_cmd() {
   command -v "$1" >/dev/null 2>&1 && return 0
   local cmd alt
@@ -104,10 +113,10 @@ EOF
 # Space-separated, not an array: /bin/bash on macOS is 3.2, where an empty
 # array under `set -u` is an error.
 missing=""
-while IFS='|' read -r cmd pkg reason; do
+while IFS='|' read -r cmd pkg needs; do
   [ -z "$cmd" ] && continue
   have_cmd "$cmd" && continue
-  echo "missing: $cmd -- $reason"
+  report_missing "$cmd" "$needs"
   missing="$missing $pkg"
 done <<EOF
 $DEPS
@@ -211,24 +220,24 @@ install_release() {
   echo "  installed $("$BIN/$cmd" --version 2>/dev/null | head -1) to $BIN/$cmd"
 }
 
-while IFS='|' read -r cmd url bin reason; do
+while IFS='|' read -r cmd url bin needs; do
   [ -z "$cmd" ] && continue
   if old="$(too_old "$cmd")"; then
-    echo "outdated: $cmd $old -- $reason"
+    echo "outdated: $cmd $old${needs:+ (needed by $needs)}"
   elif have_cmd "$cmd"; then
     continue
   else
-    echo "missing: $cmd -- $reason"
+    report_missing "$cmd" "$needs"
   fi
   install_release "$cmd" "$url" "$bin" || echo "  get it by hand from $url" >&2
 done <<EOF
 $RELEASES
 EOF
 
-while IFS='|' read -r cmd reason; do
+while IFS='|' read -r cmd needs; do
   [ -z "$cmd" ] && continue
   have_cmd "$cmd" && continue
-  echo "missing: $cmd -- $reason"
+  report_missing "$cmd" "$needs"
   echo "Running upstream installer for $cmd"
   run_installer "$cmd" || echo "  installer failed" >&2
 done <<EOF
