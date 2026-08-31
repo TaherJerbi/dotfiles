@@ -90,7 +90,7 @@ if ! have_cmd mise && [ ! -x "$HOME/.local/bin/mise" ]; then
 {{- if eq $fam "brew" }}
   brew install mise
 {{- else if eq $fam "arch" }}
-  sudo pacman -S --needed --noconfirm mise
+  sudo pacman -Sy mise --noconfirm --needed
 {{- else }}
   curl -fsSL https://mise.run | sh
 {{- end }}
