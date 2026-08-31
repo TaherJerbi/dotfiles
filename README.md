@@ -1,28 +1,9 @@
 # dotfiles
 
-One config repo tracked across several machines — currently macOS and CachyOS.
-Managed with [chezmoi](https://www.chezmoi.io/): this repo is the chezmoi
-*source directory*, and it lives at `~/.local/share/chezmoi`.
-
-Most of it is shared; anything that differs per machine is selected either by
-the OS (`.chezmoi.os`) or by a **machine identity**, never by ad-hoc sniffing.
-
-## Layout
-
-Source paths map to targets under `$HOME` by chezmoi's naming conventions —
-`dot_config/fish/config.fish` becomes `~/.config/fish/config.fish`.
-
-| source                                    | target / role                          |
-| ----------------------------------------- | -------------------------------------- |
-| `dot_config/**`                           | everything under `~/.config`           |
-| `.chezmoi.toml.tmpl`                      | prompts for the machine identity       |
-| `.chezmoiignore`                          | targets chezmoi must never touch       |
-| `.chezmoiscripts/run_onchange_before_10-packages.sh.tmpl` | installs dependencies  |
-| `.chezmoiscripts/run_onchange_after_20-herdr-links.sh.tmpl` | herdr scripts onto PATH |
-
-Prefixes that matter here: `executable_` preserves the +x bit, `private_`
-preserves 0600/0700, `symlink_` creates a symlink whose content is its target,
-and `.tmpl` marks a file rendered as a Go template.
+My config for macOS, CachyOS and ParrotOS, managed with
+[chezmoi](https://www.chezmoi.io/). This repo is the chezmoi *source
+directory*; it lives at `~/.local/share/chezmoi` and its contents map to
+`$HOME` — `dot_config/fish/config.fish` becomes `~/.config/fish/config.fish`.
 
 ## Setting up a machine
 
@@ -30,12 +11,12 @@ and `.tmpl` marks a file rendered as a Go template.
 sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply taherjerbi
 ```
 
-That clones this repo, prompts for the identity, installs missing
-dependencies, and writes every config into place. To script the prompt (note
-the key is the *prompt text*, not the variable name):
+Clones this repo, prompts for the host identity, installs missing dependencies
+and writes every config into place. To skip the prompt (the key is the prompt
+text, not the variable name):
 
 ```bash
-chezmoi init --apply --promptString "Host identity (macos/cachyos/other)=macos" taherjerbi
+chezmoi init --apply --promptString "Host identity (macos/cachyos/parrotos/other)=macos" taherjerbi
 ```
 
 Day to day:
@@ -47,67 +28,60 @@ chezmoi add <file>  # start tracking an existing file
 chezmoi cd          # shell in the source dir, to commit and push
 ```
 
-## The machine identity
+On a machine set up before `.osid`/`.pkgfamily` existed, run `chezmoi init`
+once to re-render the config — templates error until it has them, and the
+identity prompt keeps the answer already stored.
 
-One word, answered once at `chezmoi init` and stored in
-`~/.config/chezmoi/chezmoi.toml` as `data.host`. Valid values today: `macos`,
-`cachyos`, `other`. `other` is the escape hatch: shared config only.
+`~/.config/setup/doctor.sh` reports on the tools the configs need, including
+the optional ones chezmoi doesn't install (herdr, fzf, jq, eza, bat, clipboard,
+Karabiner-Elements).
 
-`fish/conf.d/00-host.fish.tmpl` bakes it straight into `$DOTS_HOST` at apply
-time — there's no intermediate file to keep in sync. Prefer `.chezmoi.os` (`darwin`/`linux`) for anything the OS alone
-can decide; reserve `.host` for what it can't — telling two Linux boxes apart.
+## Per-machine config
 
-## fish
+Anything that differs per machine is selected by one of three values, never by
+ad-hoc sniffing. All three are set at `chezmoi init` and stored in
+`~/.config/chezmoi/chezmoi.toml`.
 
-`fish/conf.d/00-host.fish.tmpl` renders `data.host` into `$DOTS_HOST` and wires
-up `fish/host/$DOTS_HOST/`, which is laid out like a fish config dir of its
-own:
+| value        | set from                | used for                                     |
+| ------------ | ----------------------- | -------------------------------------------- |
+| `.host`      | the init prompt         | telling machines apart when nothing else can |
+| `.osid`      | `/etc/os-release`       | OS and distro, e.g. `linux-parrot`           |
+| `.pkgfamily` | `/etc/os-release`       | which package manager to drive               |
 
-| path                        | what happens                       |
-| --------------------------- | ---------------------------------- |
-| `host/<name>/conf.d/*.fish` | sourced in order                   |
-| `host/<name>/functions/`    | prepended to `$fish_function_path` |
-| `host/<name>/completions/`  | prepended to `$fish_complete_path` |
+Reach for `.osid` or `.pkgfamily` when the OS or distro decides it; `.host` is
+the escape hatch for everything else. It's one word — `macos`, `cachyos`,
+`parrotos`, or `other` for a machine that should get shared config only — and
+it drives:
 
-Prepended, not appended, so a host can override something shared — macOS
-overrides `fish_prompt` with pure's.
+- **fish.** `fish/conf.d/00-host.fish.tmpl` renders it into `$DOTS_HOST` and
+  wires up `fish/host/$DOTS_HOST/`, laid out like a fish config dir of its own:
+  `conf.d/*.fish` is sourced, `functions/` and `completions/` are *prepended* to
+  their paths so a host can override something shared (macOS overrides
+  `fish_prompt` with pure's).
+- **anything else**, via `{{ if eq .host "macos" }}` in a template.
 
-## Dependencies
+Adding a machine: pick a name, add it to the prompt text in
+`.chezmoi.toml.tmpl`, and create `dot_config/fish/host/<name>/` if it needs
+one. Nothing else — fish just loads that directory if it exists, and packages
+follow `.pkgfamily`.
 
-`run_onchange_before_10-packages.sh.tmpl` installs the required tools (git,
-make, unzip, cc, rg, fd, lazygit, zoxide, nvim ≥ 0.12, tree-sitter, fish,
-alacritty) via brew or pacman. `run_onchange_` means it re-runs only when its
-rendered content changes, not on every apply.
+## Packages
 
-For a check-only report — including the optional tools that script doesn't
-manage (herdr, fzf, jq, eza, bat, clipboard, Karabiner-Elements):
+`.chezmoidata/packages.yaml` lists the required tools and how to install them
+per `.pkgfamily`; `.chezmoiscripts/run_onchange_before_10-packages.sh.tmpl`
+resolves it for the machine at hand. A distro whose family isn't recognised
+installs nothing and reports what's missing. See the comments in those two
+files.
 
-```bash
-~/.config/setup/doctor.sh
-```
+## Machine-local files
 
-## Adding a machine
+Listed in `.chezmoiignore`, so chezmoi neither creates nor removes them:
+`fish/conf.d/local.fish` (secrets and overrides), `fish/fish_variables`,
+`nvim/nvim-pack-lock.json`, `karabiner/automatic_backups`, herdr's runtime
+state and Alacritty's `*.bak` migration backups.
 
-1. Pick a one-word name, e.g. `parrotos`.
-2. Add it to the prompt text in `.chezmoi.toml.tmpl`.
-3. Add `dot_config/fish/host/parrotos/conf.d/00-parrotos.fish` (plus
-   `functions/` and `completions/` beside it, if it needs them).
-4. If its package manager isn't brew or pacman, extend the OS branch in
-   `.chezmoiscripts/run_onchange_before_10-packages.sh.tmpl`.
+## Conventions
 
-fish needs no edit; it just loads `fish/host/<name>/` if it exists.
-
-## Machine-local files (never tracked)
-
-Listed in `.chezmoiignore`, so chezmoi will neither create nor remove them.
-
-| file                          | what it is                            |
-| ----------------------------- | ------------------------------------- |
-| `fish/conf.d/local.fish`      | secrets and per-machine overrides     |
-| `fish/fish_variables`         | fish's own universal-variable state   |
-| `nvim/nvim-pack-lock.json`    | written by `vim.pack`                 |
-| `karabiner/automatic_backups` | Karabiner-Elements' own backups       |
-| `herdr/*.log`, `*.sock`       | herdr runtime state                   |
-
-`alacritty/local.toml` and `rofimoji.rc` used to be on this list — they're now
-a template and a `symlink_` entry respectively, so chezmoi generates both.
+`executable_` keeps the +x bit, `private_` keeps 0600/0700, `symlink_` creates
+a symlink whose content is its target, and `.tmpl` is rendered as a Go
+template.

@@ -1,0 +1,79 @@
+# What this repo's configs need, and how to install it. Consumed by
+# .chezmoiscripts/run_onchange_before_10-packages.sh.tmpl and
+# dot_config/setup/executable_doctor.sh.tmpl; editing it re-runs the former.
+
+# Keyed by .pkgfamily. `install` takes the package names as arguments;
+# `refresh` runs once beforehand.
+packagemanagers:
+  brew:
+    name: brew
+    install: brew install
+    installcask: brew install --cask
+  arch:
+    name: pacman
+    install: sudo pacman -S --needed --noconfirm
+  debian:
+    name: apt
+    install: sudo apt-get install -y
+    refresh: sudo apt-get update
+  fedora:
+    name: dnf
+    install: sudo dnf install -y
+  suse:
+    name: zypper
+    install: sudo zypper install -y
+  alpine:
+    name: apk
+    install: sudo apk add
+
+#   cmd     what must end up on PATH
+#   pkg     package name where it differs from cmd
+#   manual  families whose repos don't carry it (or carry it too old)
+#   cask    a Homebrew cask rather than a formula
+#   alt     another binary name that counts as having it
+tools:
+  - cmd: git
+    reason: clone/update plugins (nvim, kickstart)
+  - cmd: make
+    reason: build telescope-fzf-native and other native plugins
+  - cmd: unzip
+    reason: mason package extraction (nvim LSP/formatter installs)
+  - cmd: cc
+    reason: compile treesitter parsers and native plugins
+    pkg:
+      default: gcc
+  - cmd: rg
+    reason: telescope live grep
+    pkg:
+      default: ripgrep
+  - cmd: fd
+    reason: telescope file finding
+    # Debian ships the binary as fdfind, to avoid clashing with fdclone.
+    pkg:
+      debian: fd-find
+      fedora: fd-find
+    alt: fdfind
+  - cmd: lazygit
+    reason: <leader>lg in nvim, 'lg' fish alias
+    manual: [debian]
+    url: github.com/jesseduffield/lazygit/releases
+  - cmd: zoxide
+    reason: fish 'z' jumping, herdr workspace switcher
+  - cmd: nvim
+    reason: this nvim config (requires >= 0.12 for vim.pack)
+    pkg:
+      default: neovim
+    manual: [debian]
+    url: github.com/neovim/neovim/releases -- need >= 0.12
+  - cmd: tree-sitter
+    reason: compile treesitter parsers
+    # brew splits the CLI out of the 'tree-sitter' formula.
+    pkg:
+      default: tree-sitter-cli
+    manual: [debian, fedora, suse, alpine]
+    url: github.com/tree-sitter/tree-sitter/releases, or 'cargo install tree-sitter-cli'
+  - cmd: fish
+    reason: this fish config
+  - cmd: alacritty
+    reason: this alacritty config
+    cask: true

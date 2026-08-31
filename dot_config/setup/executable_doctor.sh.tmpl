@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
-# Check-only report of the tools this repo's configs (nvim, fish, alacritty,
-# herdr) rely on. Installs nothing -- that's chezmoi's job, in
-# .chezmoiscripts/run_onchange_before_10-packages.sh.tmpl.
-#
-# This also covers the optional and manually-installed tools that script
-# deliberately doesn't manage.
+# Reports on the tools this repo's configs rely on; installs nothing. The
+# required list comes from the same .chezmoidata/packages.yaml as the install
+# script, .chezmoiscripts/run_onchange_before_10-packages.sh.tmpl.
 #
 #   ~/.config/setup/doctor.sh
 set -euo pipefail
@@ -13,23 +10,35 @@ report() { printf '  %-12s %-8s %s\n' "$1" "$2" "$3"; }
 have() { command -v "$1" >/dev/null 2>&1; }
 check() { if have "$1"; then report "$1" ok "$2"; else report "$1" MISSING "$2"; fi; }
 
+# cmd|alternative binary name|reason
+REQUIRED="
+{{- range .tools }}
+{{ .cmd }}|{{ if hasKey . "alt" }}{{ .alt }}{{ end }}|{{ .reason }}
+{{- end }}
+"
+
 echo "Machine identity: ${DOTS_HOST:-(unset)}"
+echo "Machine osid:     {{ .osid }}   packages: {{ .pkgfamily | default "(none -- unrecognised distro)" }}"
+if [ -r /etc/os-release ]; then
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  echo "Distribution:     ${PRETTY_NAME:-${ID:-unknown}}"
+fi
 echo
 echo "Required (installed by chezmoi's package script)..."
-check git         "clone/update plugins (nvim, kickstart)"
-check make        "build telescope-fzf-native and other native plugins"
-check unzip       "mason package extraction (nvim LSP/formatter installs)"
-check cc          "compile treesitter parsers and native plugins"
-check rg          "telescope live grep"
-check fd          "telescope file finding"
-check lazygit     "<leader>lg in nvim, 'lg' fish alias"
-check zoxide      "fish 'z' jumping, herdr workspace switcher"
-check nvim        "this nvim config (requires >= 0.12 for vim.pack)"
-check tree-sitter "compile treesitter parsers"
-check fish        "this fish config"
-check alacritty   "this alacritty config"
+while IFS='|' read -r cmd alt reason; do
+  [ -z "$cmd" ] && continue
+  if have "$cmd"; then
+    report "$cmd" ok "$reason"
+  elif [ -n "$alt" ] && have "$alt"; then
+    report "$cmd" "as $alt" "$reason -- chezmoi's package script links it to ~/.local/bin/$cmd"
+  else
+    report "$cmd" MISSING "$reason"
+  fi
+done <<EOF
+$REQUIRED
+EOF
 
-# The nvim config uses vim.pack and the PackChanged event, both Neovim 0.12+.
 # On 0.11 init.lua aborts with "Invalid 'event': 'PackChanged'".
 if have nvim; then
   ver="$(nvim --version | head -1 | sed 's/^NVIM v//')"
@@ -59,7 +68,7 @@ case "$(uname -s)" in
     if have xclip || have xsel || have wl-copy; then
       report clipboard ok "'\"+y' clipboard yank in nvim"
     else
-      report clipboard MISSING "pacman -S xclip (X11) or wl-clipboard (Wayland)"
+      report clipboard MISSING "install xclip (X11) or wl-clipboard (Wayland)"
     fi
     ;;
 esac

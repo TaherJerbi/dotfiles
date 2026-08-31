@@ -1,65 +1,128 @@
 #!/usr/bin/env bash
-# Installs the external tools this repo's configs (nvim, fish, alacritty,
-# herdr) rely on. Run by chezmoi *before* it writes any files.
-#
-# run_onchange_: chezmoi re-runs this only when the rendered content below
-# changes -- i.e. when the package list or the OS branch actually changes,
-# not on every apply.
-#
-# For a check-only report of what's installed (including the optional tools
-# this script doesn't manage), run ~/.config/setup/doctor.sh by hand.
+# Installs what this repo's configs need, from .chezmoidata/packages.yaml
+# resolved for this machine's .pkgfamily. Report-only counterpart:
+# ~/.config/setup/doctor.sh.
 set -euo pipefail
-
-# Host: {{ .host }}
-{{ if eq .chezmoi.os "darwin" -}}
-PM="brew"
-# brew names differing from the command they provide. brew also splits the
-# tree-sitter CLI out of the 'tree-sitter' formula.
-PKGS=(git make unzip gcc ripgrep fd lazygit zoxide neovim tree-sitter-cli fish)
-CASKS=(alacritty)
+{{ $fam := .pkgfamily -}}
+{{ $pm := dig $fam (dict) .packagemanagers }}
+# Host: {{ .host }}   osid: {{ .osid }}   packages: {{ $fam | default "unknown -- no package manager" }}
+PM={{ dig "name" "" $pm | quote }}
+{{ if hasKey $pm "refresh" -}}
+refresh_pkgs() { {{ $pm.refresh }}; }
 {{- else -}}
-PM="pacman"
-PKGS=(git make unzip gcc ripgrep fd lazygit zoxide neovim tree-sitter-cli fish alacritty)
-CASKS=()
+refresh_pkgs() { :; }
+{{- end }}
+{{ if hasKey $pm "install" -}}
+install_pkgs() { {{ $pm.install }} "$@"; }
+{{- else -}}
+install_pkgs() { :; }
 {{- end }}
 
-# cmd|package|why it's needed. Only missing commands trigger an install.
+# cmd|package|reason
 DEPS="
-git|git|clone/update plugins (nvim, kickstart)
-make|make|build telescope-fzf-native and other native plugins
-unzip|unzip|mason package extraction (nvim LSP/formatter installs)
-cc|gcc|compile treesitter parsers and native plugins
-rg|ripgrep|telescope live grep
-fd|fd|telescope file finding
-lazygit|lazygit|<leader>lg in nvim, 'lg' fish alias
-zoxide|zoxide|fish 'z' jumping, herdr workspace switcher
-nvim|neovim|this nvim config (requires >= 0.12 for vim.pack)
-tree-sitter|tree-sitter-cli|compile treesitter parsers
-fish|fish|this fish config
+{{- range .tools }}
+{{- $manual := and (hasKey . "manual") (has $fam .manual) -}}
+{{- $cask := and (hasKey . "cask") (eq $fam "brew") -}}
+{{- if not (or $manual $cask) }}
+{{ .cmd }}|{{ if hasKey . "pkg" }}{{ dig $fam (dig "default" .cmd .pkg) .pkg }}{{ else }}{{ .cmd }}{{ end }}|{{ .reason }}
+{{- end }}
+{{- end }}
 "
 
-missing=()
+# cmd|where to get it|reason -- not in this machine's repos, or too old there.
+MANUAL="
+{{- range .tools }}
+{{- if and (hasKey . "manual") (has $fam .manual) }}
+{{ .cmd }}|{{ .url }}|{{ .reason }}
+{{- end }}
+{{- end }}
+"
+
+# cmd|alternative binary name
+ALTS="
+{{- range .tools }}
+{{- if hasKey . "alt" }}
+{{ .cmd }}|{{ .alt }}
+{{- end }}
+{{- end }}
+"
+
+{{ if eq $fam "brew" -}}
+CASKS="
+{{- range .tools }}
+{{- if hasKey . "cask" }}
+{{ .cmd }}|{{ if hasKey . "pkg" }}{{ dig $fam (dig "default" .cmd .pkg) .pkg }}{{ else }}{{ .cmd }}{{ end }}
+{{- end }}
+{{- end }}
+"
+{{ end }}
+have_cmd() {
+  command -v "$1" >/dev/null 2>&1 && return 0
+  local cmd alt
+  while IFS='|' read -r cmd alt; do
+    [ "$cmd" = "$1" ] && command -v "$alt" >/dev/null 2>&1 && return 0
+  done <<EOF
+$ALTS
+EOF
+  return 1
+}
+
+# Space-separated, not an array: /bin/bash on macOS is 3.2, where an empty
+# array under `set -u` is an error.
+missing=""
 while IFS='|' read -r cmd pkg reason; do
   [ -z "$cmd" ] && continue
-  command -v "$cmd" >/dev/null 2>&1 || { echo "missing: $cmd -- $reason"; missing+=("$pkg"); }
+  have_cmd "$cmd" && continue
+  echo "missing: $cmd -- $reason"
+  missing="$missing $pkg"
 done <<EOF
 $DEPS
 EOF
 
-if [ "${#missing[@]}" -gt 0 ]; then
-  echo "Installing via $PM: ${missing[*]}"
-{{ if eq .chezmoi.os "darwin" -}}
-  brew install "${missing[@]}"
-{{- else -}}
-  sudo pacman -S --needed --noconfirm "${missing[@]}"
-{{- end }}
+if [ -n "$missing" ]; then
+  if [ -n "$PM" ]; then
+    echo "Installing via $PM:$missing"
+    refresh_pkgs
+    install_pkgs $missing
+  else
+    echo "No package manager known for this machine; install by hand:$missing" >&2
+    echo "To teach chezmoi about it, add its ID to \$pkgfamily in .chezmoi.toml.tmpl" >&2
+    echo "and a packagemanagers entry in .chezmoidata/packages.yaml." >&2
+  fi
 fi
 
-{{ if eq .chezmoi.os "darwin" -}}
-command -v alacritty >/dev/null 2>&1 || brew install --cask alacritty
-{{- end }}
+{{ if eq $fam "brew" -}}
+while IFS='|' read -r cmd pkg; do
+  [ -z "$cmd" ] && continue
+  have_cmd "$cmd" && continue
+  echo "Installing cask $pkg"
+  {{ $pm.installcask }} "$pkg"
+done <<EOF
+$CASKS
+EOF
+{{ end -}}
 
-# The nvim config uses vim.pack and the PackChanged event, both Neovim 0.12+.
+# Debian names the binary fdfind; nvim and fish both call it fd.
+if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
+  mkdir -p "$HOME/.local/bin"
+  ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
+  echo "Linked fdfind -> ~/.local/bin/fd"
+fi
+
+printed_header=""
+while IFS='|' read -r cmd url reason; do
+  [ -z "$cmd" ] && continue
+  have_cmd "$cmd" && continue
+  if [ -z "$printed_header" ]; then
+    echo "Not packaged on this distro (or only in a version too old) --" >&2
+    echo "install these by hand:" >&2
+    printed_header=yes
+  fi
+  printf '  %-12s %s\n' "$cmd" "$url" >&2
+done <<EOF
+$MANUAL
+EOF
+
 # On 0.11 init.lua aborts with "Invalid 'event': 'PackChanged'".
 if command -v nvim >/dev/null 2>&1; then
   ver="$(nvim --version | head -1 | sed 's/^NVIM v//')"

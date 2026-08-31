@@ -1,11 +1,36 @@
-{{- /* Machine identity, prompted once on `chezmoi init` and stored in
-       ~/.config/chezmoi/chezmoi.toml. Replaces the old ~/.config/host file;
-       fish/conf.d/00-host.fish.tmpl now bakes this value in directly.
+{{- /* Prompted once at `chezmoi init`, then stored in
+       ~/.config/chezmoi/chezmoi.toml. Selects fish/host/<name>/. */ -}}
+{{- $host := promptStringOnce . "host" "Host identity (macos/cachyos/parrotos/other)" -}}
 
-       Valid values: macos | cachyos | other. These select fish/host/<name>/
-       (see dot_config/fish/conf.d/00-host.fish) and the package set in
-       .chezmoiscripts/run_onchange_before_10-packages.sh.tmpl. */ -}}
-{{- $host := promptStringOnce . "host" "Host identity (macos/cachyos/other)" -}}
+{{- /* "darwin", "linux-parrot", "linux-cachyos".
+       https://www.chezmoi.io/user-guide/machines/linux/ */ -}}
+{{- $osid := .chezmoi.os -}}
+{{- if hasKey .chezmoi.osRelease "id" -}}
+{{-   $osid = printf "%s-%s" .chezmoi.os .chezmoi.osRelease.id -}}
+{{- end -}}
+
+{{- /* Which package manager to drive, keying .chezmoidata/packages.yaml.
+       Matched against ID and ID_LIKE, so derivatives come along for free:
+       Parrot and Kali say debian, CachyOS and EndeavourOS say arch. Empty
+       for a distro we don't know -- the package script then installs
+       nothing and says what's missing. */ -}}
+{{- $ids := list -}}
+{{- if hasKey .chezmoi.osRelease "id" -}}{{- $ids = append $ids .chezmoi.osRelease.id -}}{{- end -}}
+{{- if hasKey .chezmoi.osRelease "idLike" -}}{{- $ids = concat $ids (splitList " " .chezmoi.osRelease.idLike) -}}{{- end -}}
+{{- $pkgfamily := "" -}}
+{{- if eq .chezmoi.os "darwin" -}}{{- $pkgfamily = "brew" -}}{{- end -}}
+{{- range $ids -}}
+{{-   if eq $pkgfamily "" -}}
+{{-     if has . (list "arch" "archlinux" "cachyos" "endeavouros" "manjaro" "garuda") -}}{{- $pkgfamily = "arch" -}}
+{{-     else if has . (list "debian" "ubuntu" "parrot" "kali" "raspbian" "linuxmint" "pop") -}}{{- $pkgfamily = "debian" -}}
+{{-     else if has . (list "fedora" "rhel" "centos" "rocky" "almalinux") -}}{{- $pkgfamily = "fedora" -}}
+{{-     else if has . (list "opensuse" "opensuse-tumbleweed" "opensuse-leap" "suse" "sles") -}}{{- $pkgfamily = "suse" -}}
+{{-     else if eq . "alpine" -}}{{- $pkgfamily = "alpine" -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
 
 [data]
     host = {{ $host | quote }}
+    osid = {{ $osid | quote }}
+    pkgfamily = {{ $pkgfamily | quote }}
