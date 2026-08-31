@@ -26,11 +26,18 @@ packagemanagers:
     name: apk
     install: sudo apk add
 
-#   cmd     what must end up on PATH
-#   pkg     package name where it differs from cmd
-#   manual  families whose repos don't carry it (or carry it too old)
-#   cask    a Homebrew cask rather than a formula
-#   alt     another binary name that counts as having it
+#   cmd         what must end up on PATH
+#   pkg         package name where it differs from cmd
+#   manual      families whose repos don't carry it (or carry it too old)
+#   release     GitHub release to install from instead, for those families
+#   minversion  reinstall if what's on PATH is older than this
+#   cask        a Homebrew cask rather than a formula
+#   alt         another binary name that counts as having it
+#
+# release.asset and release.bin take {version}, {plainversion} (no leading v)
+# and {arch}, the latter mapped through release.arch by .chezmoi.arch.
+# release.bin names the binary inside the archive; without it the download is
+# the bare binary. Bump release.version by hand.
 tools:
   - cmd: git
     reason: clone/update plugins (nvim, kickstart)
@@ -56,22 +63,42 @@ tools:
   - cmd: lazygit
     reason: <leader>lg in nvim, 'lg' fish alias
     manual: [debian]
-    url: github.com/jesseduffield/lazygit/releases
+    release:
+      version: v0.64.1
+      url: https://github.com/jesseduffield/lazygit/releases/download/{version}/lazygit_{plainversion}_linux_{arch}.tar.gz
+      bin: lazygit
+      arch:
+        amd64: x86_64
+        arm64: arm64
   - cmd: zoxide
     reason: fish 'z' jumping, herdr workspace switcher
   - cmd: nvim
     reason: this nvim config (requires >= 0.12 for vim.pack)
     pkg:
       default: neovim
+    # Below 0.12 init.lua aborts with "Invalid 'event': 'PackChanged'".
+    minversion: "0.12"
     manual: [debian]
-    url: github.com/neovim/neovim/releases -- need >= 0.12
+    release:
+      version: v0.12.5
+      url: https://github.com/neovim/neovim/releases/download/{version}/nvim-linux-{arch}.tar.gz
+      # Needs its runtime files alongside, so the whole tree is kept.
+      bin: nvim-linux-{arch}/bin/nvim
+      arch:
+        amd64: x86_64
+        arm64: arm64
   - cmd: tree-sitter
     reason: compile treesitter parsers
     # brew splits the CLI out of the 'tree-sitter' formula.
     pkg:
       default: tree-sitter-cli
     manual: [debian, fedora, suse, alpine]
-    url: github.com/tree-sitter/tree-sitter/releases, or 'cargo install tree-sitter-cli'
+    release:
+      version: v0.27.0
+      url: https://github.com/tree-sitter/tree-sitter/releases/download/{version}/tree-sitter-linux-{arch}.gz
+      arch:
+        amd64: x64
+        arm64: arm64
   - cmd: fish
     reason: this fish config
   - cmd: alacritty

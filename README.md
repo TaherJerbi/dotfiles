@@ -69,9 +69,15 @@ follow `.pkgfamily`.
 
 `.chezmoidata/packages.yaml` lists the required tools and how to install them
 per `.pkgfamily`; `.chezmoiscripts/run_onchange_before_10-packages.sh.tmpl`
-resolves it for the machine at hand. A distro whose family isn't recognised
-installs nothing and reports what's missing. See the comments in those two
-files.
+resolves it for the machine at hand, and `doctor.sh` reads the same list.
+
+Anything a distro doesn't package — nvim, tree-sitter and lazygit on Debian —
+is pinned to a GitHub release in that file and installed into `~/.local`, no
+sudo: bare binaries in `~/.local/bin`, archives that need their tree in
+`~/.local/opt/<tool>`. Bump `release.version` by hand to upgrade. A tool with a
+`minversion` gets reinstalled when what's on `PATH` is older (Debian's neovim
+is far below the 0.12 this nvim config needs). A distro whose family isn't
+recognised installs nothing and reports what's missing.
 
 ## Machine-local files
 

@@ -29,11 +29,24 @@ DEPS="
 {{- end }}
 "
 
-# cmd|where to get it|reason -- not in this machine's repos, or too old there.
-MANUAL="
+# cmd|url|binary inside the archive|reason -- not in this machine's repos, or
+# too old there, so these come from a GitHub release. An empty third field
+# means the download is the bare binary.
+RELEASES="
 {{- range .tools }}
 {{- if and (hasKey . "manual") (has $fam .manual) }}
-{{ .cmd }}|{{ .url }}|{{ .reason }}
+{{- $r := .release }}
+{{- $arch := dig $.chezmoi.arch "" $r.arch }}
+{{ .cmd }}|{{ $r.url | replace "{version}" $r.version | replace "{plainversion}" (trimPrefix "v" $r.version) | replace "{arch}" $arch }}|{{ if hasKey $r "bin" }}{{ $r.bin | replace "{arch}" $arch }}{{ end }}|{{ .reason }}
+{{- end }}
+{{- end }}
+"
+
+# cmd|minimum acceptable version
+MINVERSIONS="
+{{- range .tools }}
+{{- if hasKey . "minversion" }}
+{{ .cmd }}|{{ .minversion }}
 {{- end }}
 {{- end }}
 "
@@ -109,25 +122,95 @@ if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
   echo "Linked fdfind -> ~/.local/bin/fd"
 fi
 
-printed_header=""
-while IFS='|' read -r cmd url reason; do
+# First version-looking token of `<cmd> --version`, e.g. 0.12.5.
+version_of() {
+  # || true: a tool with no version output must not trip `set -e`.
+  "$1" --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1 || true
+}
+
+# True when $1 is an older version than $2, comparing field by field.
+version_lt() {
+  [ "$1" = "$2" ] && return 1
+  [ "$(printf '%s\n%s\n' "$1" "$2" | sort -t. -k1,1n -k2,2n -k3,3n | head -1)" = "$1" ]
+}
+
+# Below its minversion counts as not having it at all.
+too_old() {
+  local cmd want have
+  while IFS='|' read -r cmd want; do
+    [ "$cmd" = "$1" ] || continue
+    have="$(version_of "$cmd")"
+    [ -z "$have" ] && return 1
+    version_lt "$have" "$want" && { echo "$have"; return 0; }
+  done <<EOF
+$MINVERSIONS
+EOF
+  return 1
+}
+
+# Unpacked into ~/.local so none of this needs sudo, and so it takes
+# precedence over a distro package: config.fish prepends ~/.local/bin.
+BIN="$HOME/.local/bin"
+# Not ~/.local/share: that's where the tools keep their own data (nvim's
+# plugins live in ~/.local/share/nvim), and unpacking clears the directory.
+OPT="$HOME/.local/opt"
+
+install_release() {
+  local cmd url bin tmp
+  cmd=$1 url=$2 bin=$3
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"' RETURN
+  mkdir -p "$BIN"
+
+  echo "Downloading $cmd from $url"
+  curl -fsSL "$url" -o "$tmp/asset" || { echo "  download failed" >&2; return 1; }
+
+  case "$url" in
+    *.tar.gz|*.tgz)
+      # Kept whole: a binary may need the rest of the tree beside it.
+      rm -rf "${OPT:?}/$cmd"
+      mkdir -p "$OPT/$cmd"
+      tar -C "$OPT/$cmd" -xzf "$tmp/asset"
+      ln -sf "$OPT/$cmd/$bin" "$BIN/$cmd"
+      ;;
+    *.gz)
+      gunzip -c "$tmp/asset" > "$BIN/$cmd"
+      chmod +x "$BIN/$cmd"
+      ;;
+    *)
+      install -m 755 "$tmp/asset" "$BIN/$cmd"
+      ;;
+  esac
+  echo "  installed $("$BIN/$cmd" --version 2>/dev/null | head -1) to $BIN/$cmd"
+}
+
+while IFS='|' read -r cmd url bin reason; do
   [ -z "$cmd" ] && continue
-  have_cmd "$cmd" && continue
-  if [ -z "$printed_header" ]; then
-    echo "Not packaged on this distro (or only in a version too old) --" >&2
-    echo "install these by hand:" >&2
-    printed_header=yes
+  if old="$(too_old "$cmd")"; then
+    echo "outdated: $cmd $old -- $reason"
+  elif have_cmd "$cmd"; then
+    continue
+  else
+    echo "missing: $cmd -- $reason"
   fi
-  printf '  %-12s %s\n' "$cmd" "$url" >&2
+  install_release "$cmd" "$url" "$bin" || echo "  get it by hand from $url" >&2
 done <<EOF
-$MANUAL
+$RELEASES
 EOF
 
-# On 0.11 init.lua aborts with "Invalid 'event': 'PackChanged'".
-if command -v nvim >/dev/null 2>&1; then
-  ver="$(nvim --version | head -1 | sed 's/^NVIM v//')"
-  major="${ver%%.*}"; rest="${ver#*.}"; minor="${rest%%.*}"
-  if [ "$major" -eq 0 ] && [ "$minor" -lt 12 ]; then
-    echo "WARNING: nvim $ver is too old; need >= 0.12 (vim.pack). Upgrade neovim." >&2
+# Whatever PATH resolves to has the last word: a distro package in /usr/bin can
+# still shadow what was just put in ~/.local/bin.
+while IFS='|' read -r cmd want; do
+  [ -z "$cmd" ] && continue
+  if old="$(too_old "$cmd")"; then
+    echo "WARNING: $(command -v "$cmd") is $old, older than $want." >&2
+    if [ -x "$BIN/$cmd" ]; then
+      echo "         $BIN/$cmd is newer but shadowed -- put $BIN first on PATH," >&2
+      echo "         or remove the distro package. A new fish session does this." >&2
+    else
+      echo "         Upgrade it." >&2
+    fi
   fi
-fi
+done <<EOF
+$MINVERSIONS
+EOF
