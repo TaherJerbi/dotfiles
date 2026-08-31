@@ -33,7 +33,7 @@ once to re-render the config — templates error until it has them, and the
 identity prompt keeps the answer already stored.
 
 `~/.config/setup/doctor.sh` reports on the tools the configs need, including
-the optional ones chezmoi doesn't install (herdr, fzf, jq, eza, bat, clipboard,
+the optional ones chezmoi doesn't install (fzf, jq, eza, bat, clipboard,
 Karabiner-Elements).
 
 ## Per-machine config
@@ -71,10 +71,11 @@ follow `.pkgfamily`.
 per `.pkgfamily`; `.chezmoiscripts/run_onchange_before_10-packages.sh.tmpl`
 resolves it for the machine at hand, and `doctor.sh` reads the same list.
 
-Anything a distro doesn't package — nvim, tree-sitter and lazygit on Debian —
-is pinned to a GitHub release in that file and installed into `~/.local`, no
-sudo: bare binaries in `~/.local/bin`, archives that need their tree in
-`~/.local/opt/<tool>`. Bump `release.version` by hand to upgrade. A tool with a
+Anything a distro doesn't package — nvim, tree-sitter, lazygit and herdr on
+Debian — is either pinned to a GitHub `release` in that file, installed into
+`~/.local` without sudo (bare binaries in `~/.local/bin`, archives that need
+their tree in `~/.local/opt/<tool>`), or handed to upstream's own `installer`
+command, as herdr is. Bump `release.version` by hand to upgrade. A tool with a
 `minversion` gets reinstalled when what's on `PATH` is older (Debian's neovim
 is far below the 0.12 this nvim config needs). A distro whose family isn't
 recognised installs nothing and reports what's missing.

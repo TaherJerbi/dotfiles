@@ -55,7 +55,6 @@ EOF
 
 echo
 echo "Optional / not package-managed..."
-check herdr "install manually and ensure it's on PATH"
 for cmd in fzf jq eza bat; do
   check "$cmd" "herdr workspace switcher"
 done

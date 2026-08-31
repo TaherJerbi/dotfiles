@@ -34,13 +34,34 @@ DEPS="
 # means the download is the bare binary.
 RELEASES="
 {{- range .tools }}
-{{- if and (hasKey . "manual") (has $fam .manual) }}
+{{- if and (hasKey . "release") (has $fam (dig "manual" (list) .)) }}
 {{- $r := .release }}
 {{- $arch := dig $.chezmoi.arch "" $r.arch }}
 {{ .cmd }}|{{ $r.url | replace "{version}" $r.version | replace "{plainversion}" (trimPrefix "v" $r.version) | replace "{arch}" $arch }}|{{ if hasKey $r "bin" }}{{ $r.bin | replace "{arch}" $arch }}{{ end }}|{{ .reason }}
 {{- end }}
 {{- end }}
 "
+
+# Tools whose upstream ships its own installer. A case, not a table: these
+# commands contain the pipes the tables are split on.
+# cmd|reason
+INSTALLERS="
+{{- range .tools }}
+{{- if and (hasKey . "installer") (has $fam (dig "manual" (list) .)) }}
+{{ .cmd }}|{{ .reason }}
+{{- end }}
+{{- end }}
+"
+
+run_installer() {
+  case "$1" in
+{{- range .tools }}
+{{- if hasKey . "installer" }}
+    {{ .cmd }}) {{ .installer }} ;;
+{{- end }}
+{{- end }}
+  esac
+}
 
 # cmd|minimum acceptable version
 MINVERSIONS="
@@ -196,6 +217,16 @@ while IFS='|' read -r cmd url bin reason; do
   install_release "$cmd" "$url" "$bin" || echo "  get it by hand from $url" >&2
 done <<EOF
 $RELEASES
+EOF
+
+while IFS='|' read -r cmd reason; do
+  [ -z "$cmd" ] && continue
+  have_cmd "$cmd" && continue
+  echo "missing: $cmd -- $reason"
+  echo "Running upstream installer for $cmd"
+  run_installer "$cmd" || echo "  installer failed" >&2
+done <<EOF
+$INSTALLERS
 EOF
 
 # Whatever PATH resolves to has the last word: a distro package in /usr/bin can

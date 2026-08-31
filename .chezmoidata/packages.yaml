@@ -30,6 +30,7 @@ packagemanagers:
 #   pkg         package name where it differs from cmd
 #   manual      families whose repos don't carry it (or carry it too old)
 #   release     GitHub release to install from instead, for those families
+#   installer   upstream's own install command, used in place of release
 #   minversion  reinstall if what's on PATH is older than this
 #   cask        a Homebrew cask rather than a formula
 #   alt         another binary name that counts as having it
@@ -104,3 +105,7 @@ tools:
   - cmd: alacritty
     reason: this alacritty config
     cask: true
+  - cmd: herdr
+    reason: the multiplexer fish execs into; herdr/config.toml and its scripts
+    manual: [arch, debian, fedora, suse, alpine]
+    installer: curl -fsSL https://herdr.dev/install.sh | sh
