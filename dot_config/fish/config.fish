@@ -34,12 +34,3 @@ end
 if command -v direnv >/dev/null; and not functions -q __direnv_export_eval
     direnv hook fish | source
 end
-
-# --- herdr ------------------------------------------------------------------
-# Launch herdr automatically on interactive shell startup, unless we're
-# already inside a herdr-managed pane.
-if status is-interactive
-    and test -z "$HERDR_ENV"
-    and command -v herdr >/dev/null
-    exec herdr
-end

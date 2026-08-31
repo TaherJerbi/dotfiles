@@ -98,6 +98,7 @@ tools:
     hosts: [macos, cachyos]
   - cmd: alacritty
     cask: true
+    hosts: [macos, cachyos]
   - cmd: fzf
   - cmd: jq
   - cmd: eza
