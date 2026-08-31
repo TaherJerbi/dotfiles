@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Installs everything in ~/.config/mise/config.toml. An `after` script, not a
+# `before` one: chezmoi writes that config as part of applying the source
+# state, which happens after the before-scripts run.
+set -euo pipefail
+
+{{/* The rendered tool list, so editing .chezmoidata/packages.yaml re-runs this.
+     chezmoi hashes this file's contents, and it would otherwise never change. */ -}}
+{{- range .tools }}
+{{-   if and (hasKey . "mise") (or (not (hasKey . "hosts")) (has $.host .hosts)) }}
+# tool: {{ .mise }} {{ dig "version" "latest" . }}
+{{-   end }}
+{{- end }}
+
+# Bootstrapped into ~/.local/bin by the package script, which may not be on
+# PATH in a non-interactive shell yet.
+PATH="$HOME/.local/bin:$PATH"
+
+if ! command -v mise >/dev/null 2>&1; then
+  echo "mise is not installed; skipping. See the package script." >&2
+  exit 0
+fi
+
+echo "Installing tools with mise..."
+mise install --yes
+
+# Shims are how a non-fish context (a systemd unit, a bare `sh -c`) finds
+# these; fish itself uses `mise activate` from config.fish.
+mise reshim

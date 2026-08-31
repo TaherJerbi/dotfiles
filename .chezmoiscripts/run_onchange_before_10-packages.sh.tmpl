@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Installs what this repo's configs need, from .chezmoidata/packages.yaml
-# resolved for this machine's .pkgfamily. Report-only counterpart:
-# ~/.config/setup/doctor.sh.
+# Installs the pieces mise has no entry for -- a C toolchain, the login shell,
+# the GUI terminal -- plus mise itself. Everything else is in
+# ~/.config/mise/config.toml, installed by run_onchange_after_20-mise.sh.
+# Report-only counterpart: ~/.config/setup/doctor.sh.
 set -euo pipefail
 {{ $fam := .pkgfamily -}}
 {{ $pm := dig $fam (dict) .packagemanagers -}}
 {{/* Tools this host wants: everything without a `hosts` list, plus the ones
-     naming it. */}}
+     naming it. Kept whole, because a mise-managed tool can still be the
+     reason a system package is needed (nvim needs cc). */}}
 {{- $tools := list }}
 {{- range .tools }}
 {{-   if or (not (hasKey . "hosts")) (has $.host .hosts) }}{{ $tools = append $tools . }}{{ end }}
@@ -28,66 +30,12 @@ install_pkgs() { :; }
 # cmd|package|what needs it
 DEPS="
 {{- range $tools }}
-{{- $manual := and (hasKey . "manual") (has $fam .manual) -}}
 {{- $cask := and (hasKey . "cask") (eq $fam "brew") -}}
-{{- if not (or $manual $cask) }}
+{{- if not (or (hasKey . "mise") $cask) }}
 {{ .cmd }}|{{ if hasKey . "pkg" }}{{ dig $fam (dig "default" .cmd .pkg) .pkg }}{{ else }}{{ .cmd }}{{ end }}|{{- $c := .cmd }}{{ $needs := list }}{{ range $tools }}{{ if has $c (dig "deps" (list) .) }}{{ $needs = append $needs .cmd }}{{ end }}{{ end }}{{ join ", " $needs }}
 {{- end }}
 {{- end }}
 "
-
-# cmd|url|binary inside the archive|what needs it -- not in this machine's repos, or
-# too old there, so these come from a GitHub release. An empty third field
-# means the download is the bare binary.
-RELEASES="
-{{- range $tools }}
-{{- if and (hasKey . "release") (has $fam (dig "manual" (list) .)) }}
-{{- $r := .release }}
-{{- $arch := dig $.chezmoi.arch "" $r.arch }}
-{{ .cmd }}|{{ $r.url | replace "{version}" $r.version | replace "{plainversion}" (trimPrefix "v" $r.version) | replace "{arch}" $arch }}|{{ if hasKey $r "bin" }}{{ $r.bin | replace "{arch}" $arch }}{{ end }}|{{- $c := .cmd }}{{ $needs := list }}{{ range $tools }}{{ if has $c (dig "deps" (list) .) }}{{ $needs = append $needs .cmd }}{{ end }}{{ end }}{{ join ", " $needs }}
-{{- end }}
-{{- end }}
-"
-
-# Tools whose upstream ships its own installer. A case, not a table: these
-# commands contain the pipes the tables are split on.
-# cmd|what needs it
-INSTALLERS="
-{{- range $tools }}
-{{- if and (hasKey . "installer") (has $fam (dig "manual" (list) .)) }}
-{{ .cmd }}|{{- $c := .cmd }}{{ $needs := list }}{{ range $tools }}{{ if has $c (dig "deps" (list) .) }}{{ $needs = append $needs .cmd }}{{ end }}{{ end }}{{ join ", " $needs }}
-{{- end }}
-{{- end }}
-"
-
-run_installer() {
-  case "$1" in
-{{- range $tools }}
-{{- if hasKey . "installer" }}
-    {{ .cmd }}) {{ .installer }} ;;
-{{- end }}
-{{- end }}
-  esac
-}
-
-# cmd|minimum acceptable version
-MINVERSIONS="
-{{- range $tools }}
-{{- if hasKey . "minversion" }}
-{{ .cmd }}|{{ .minversion }}
-{{- end }}
-{{- end }}
-"
-
-# cmd|alternative binary name
-ALTS="
-{{- range $tools }}
-{{- if hasKey . "alt" }}
-{{ .cmd }}|{{ .alt }}
-{{- end }}
-{{- end }}
-"
-
 {{ if eq $fam "brew" -}}
 CASKS="
 {{- range $tools }}
@@ -97,18 +45,7 @@ CASKS="
 {{- end }}
 "
 {{ end }}
-report_missing() { echo "missing: $1${2:+ (needed by $2)}"; }
-
-have_cmd() {
-  command -v "$1" >/dev/null 2>&1 && return 0
-  local cmd alt
-  while IFS='|' read -r cmd alt; do
-    [ "$cmd" = "$1" ] && command -v "$alt" >/dev/null 2>&1 && return 0
-  done <<EOF
-$ALTS
-EOF
-  return 1
-}
+have_cmd() { command -v "$1" >/dev/null 2>&1; }
 
 # Space-separated, not an array: /bin/bash on macOS is 3.2, where an empty
 # array under `set -u` is an error.
@@ -116,7 +53,7 @@ missing=""
 while IFS='|' read -r cmd pkg needs; do
   [ -z "$cmd" ] && continue
   have_cmd "$cmd" && continue
-  report_missing "$cmd" "$needs"
+  echo "missing: $cmd${needs:+ (needed by $needs)}"
   missing="$missing $pkg"
 done <<EOF
 $DEPS
@@ -145,118 +82,16 @@ $CASKS
 EOF
 {{ end -}}
 
-# Debian renames some binaries to avoid clashes (fd -> fdfind, bat -> batcat);
-# this config and its scripts call them by their usual names.
-while IFS='|' read -r cmd alt; do
-  [ -z "$cmd" ] && continue
-  command -v "$cmd" >/dev/null 2>&1 && continue
-  command -v "$alt" >/dev/null 2>&1 || continue
-  mkdir -p "$HOME/.local/bin"
-  ln -sf "$(command -v "$alt")" "$HOME/.local/bin/$cmd"
-  echo "Linked $alt -> ~/.local/bin/$cmd"
-done <<EOF
-$ALTS
-EOF
-
-# First version-looking token of `<cmd> --version`, e.g. 0.12.5.
-version_of() {
-  # || true: a tool with no version output must not trip `set -e`.
-  "$1" --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1 || true
-}
-
-# True when $1 is an older version than $2, comparing field by field.
-version_lt() {
-  [ "$1" = "$2" ] && return 1
-  [ "$(printf '%s\n%s\n' "$1" "$2" | sort -t. -k1,1n -k2,2n -k3,3n | head -1)" = "$1" ]
-}
-
-# Below its minversion counts as not having it at all.
-too_old() {
-  local cmd want have
-  while IFS='|' read -r cmd want; do
-    [ "$cmd" = "$1" ] || continue
-    have="$(version_of "$cmd")"
-    [ -z "$have" ] && return 1
-    version_lt "$have" "$want" && { echo "$have"; return 0; }
-  done <<EOF
-$MINVERSIONS
-EOF
-  return 1
-}
-
-# Unpacked into ~/.local so none of this needs sudo, and so it takes
-# precedence over a distro package: config.fish prepends ~/.local/bin.
-BIN="$HOME/.local/bin"
-# Not ~/.local/share: that's where the tools keep their own data (nvim's
-# plugins live in ~/.local/share/nvim), and unpacking clears the directory.
-OPT="$HOME/.local/opt"
-
-install_release() {
-  local cmd url bin tmp
-  cmd=$1 url=$2 bin=$3
-  tmp="$(mktemp -d)"
-  trap 'rm -rf "$tmp"' RETURN
-  mkdir -p "$BIN"
-
-  echo "Downloading $cmd from $url"
-  curl -fsSL "$url" -o "$tmp/asset" || { echo "  download failed" >&2; return 1; }
-
-  case "$url" in
-    *.tar.gz|*.tgz)
-      # Kept whole: a binary may need the rest of the tree beside it.
-      rm -rf "${OPT:?}/$cmd"
-      mkdir -p "$OPT/$cmd"
-      tar -C "$OPT/$cmd" -xzf "$tmp/asset"
-      ln -sf "$OPT/$cmd/$bin" "$BIN/$cmd"
-      ;;
-    *.gz)
-      gunzip -c "$tmp/asset" > "$BIN/$cmd"
-      chmod +x "$BIN/$cmd"
-      ;;
-    *)
-      install -m 755 "$tmp/asset" "$BIN/$cmd"
-      ;;
-  esac
-  echo "  installed $("$BIN/$cmd" --version 2>/dev/null | head -1) to $BIN/$cmd"
-}
-
-while IFS='|' read -r cmd url bin needs; do
-  [ -z "$cmd" ] && continue
-  if old="$(too_old "$cmd")"; then
-    echo "outdated: $cmd $old${needs:+ (needed by $needs)}"
-  elif have_cmd "$cmd"; then
-    continue
-  else
-    report_missing "$cmd" "$needs"
-  fi
-  install_release "$cmd" "$url" "$bin" || echo "  get it by hand from $url" >&2
-done <<EOF
-$RELEASES
-EOF
-
-while IFS='|' read -r cmd needs; do
-  [ -z "$cmd" ] && continue
-  have_cmd "$cmd" && continue
-  report_missing "$cmd" "$needs"
-  echo "Running upstream installer for $cmd"
-  run_installer "$cmd" || echo "  installer failed" >&2
-done <<EOF
-$INSTALLERS
-EOF
-
-# Whatever PATH resolves to has the last word: a distro package in /usr/bin can
-# still shadow what was just put in ~/.local/bin.
-while IFS='|' read -r cmd want; do
-  [ -z "$cmd" ] && continue
-  if old="$(too_old "$cmd")"; then
-    echo "WARNING: $(command -v "$cmd") is $old, older than $want." >&2
-    if [ -x "$BIN/$cmd" ]; then
-      echo "         $BIN/$cmd is newer but shadowed -- put $BIN first on PATH," >&2
-      echo "         or remove the distro package. A new fish session does this." >&2
-    else
-      echo "         Upgrade it." >&2
-    fi
-  fi
-done <<EOF
-$MINVERSIONS
-EOF
+# mise carries every other tool, so it has to exist before the after-script
+# runs. Only brew and pacman package it; elsewhere take upstream's installer,
+# which drops a static binary in ~/.local/bin and needs no sudo.
+if ! have_cmd mise && [ ! -x "$HOME/.local/bin/mise" ]; then
+  echo "missing: mise (installs every other tool)"
+{{- if eq $fam "brew" }}
+  brew install mise
+{{- else if eq $fam "arch" }}
+  sudo pacman -S --needed --noconfirm mise
+{{- else }}
+  curl -fsSL https://mise.run | sh
+{{- end }}
+fi
