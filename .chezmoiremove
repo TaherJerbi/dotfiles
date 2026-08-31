@@ -5,3 +5,6 @@
 .config/setup/macos-setup.sh
 .config/setup/cachyos-setup.sh
 .config/herdr/scripts/setup.sh
+
+# Superseded by the baked-in value in fish/conf.d/00-host.fish.tmpl.
+.config/host

@@ -53,13 +53,13 @@ One word, answered once at `chezmoi init` and stored in
 `~/.config/chezmoi/chezmoi.toml` as `data.host`. Valid values today: `macos`,
 `cachyos`, `other`. `other` is the escape hatch: shared config only.
 
-`dot_config/host.tmpl` renders it back out to `~/.config/host`, which is what
-fish reads. Prefer `.chezmoi.os` (`darwin`/`linux`) for anything the OS alone
+`fish/conf.d/00-host.fish.tmpl` bakes it straight into `$DOTS_HOST` at apply
+time — there's no intermediate file to keep in sync. Prefer `.chezmoi.os` (`darwin`/`linux`) for anything the OS alone
 can decide; reserve `.host` for what it can't — telling two Linux boxes apart.
 
 ## fish
 
-`fish/conf.d/00-host.fish` reads `~/.config/host` into `$DOTS_HOST` and wires
+`fish/conf.d/00-host.fish.tmpl` renders `data.host` into `$DOTS_HOST` and wires
 up `fish/host/$DOTS_HOST/`, which is laid out like a fish config dir of its
 own:
 

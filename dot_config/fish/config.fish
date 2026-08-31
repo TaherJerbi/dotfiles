@@ -1,8 +1,8 @@
 # fish config — the parts shared by every machine.
 #
-# Per-machine config lives in conf.d/host/$DOTS_HOST.fish, picked by the
-# one-word value in ~/.config/host (see conf.d/00-host.fish). Machine-local
-# secrets go in conf.d/local.fish (gitignored).
+# Per-machine config lives in host/$DOTS_HOST/, picked by the one-word value
+# chezmoi bakes into conf.d/00-host.fish. Machine-local secrets go in
+# conf.d/local.fish (gitignored).
 #
 # Note: conf.d/* is sourced BEFORE this file, so $DOTS_HOST and anything the
 # per-host file sets (Homebrew's PATH, for instance) is already in place here.

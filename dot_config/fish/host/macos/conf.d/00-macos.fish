@@ -1,4 +1,4 @@
-# Loaded only when ~/.config/host says "macos". Sourced from
+# Loaded only when $DOTS_HOST is "macos". Sourced from
 # fish/conf.d/00-host.fish, before the pure/fisher snippets beside it.
 
 /opt/homebrew/bin/brew shellenv fish | source

@@ -13,7 +13,7 @@ report() { printf '  %-12s %-8s %s\n' "$1" "$2" "$3"; }
 have() { command -v "$1" >/dev/null 2>&1; }
 check() { if have "$1"; then report "$1" ok "$2"; else report "$1" MISSING "$2"; fi; }
 
-echo "Machine identity: $(cat "$HOME/.config/host" 2>/dev/null || echo '(unset)')"
+echo "Machine identity: ${DOTS_HOST:-(unset)}"
 echo
 echo "Required (installed by chezmoi's package script)..."
 check git         "clone/update plugins (nvim, kickstart)"

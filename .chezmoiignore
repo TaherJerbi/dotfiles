@@ -14,6 +14,11 @@
 # Karabiner-Elements' own rolling backups of karabiner.json.
 .config/karabiner/automatic_backups
 
+# Karabiner-Elements is macOS-only.
+{{ if ne .chezmoi.os "darwin" }}
+.config/karabiner
+{{ end }}
+
 # herdr runtime state.
 .config/herdr/*.log
 .config/herdr/*.sock

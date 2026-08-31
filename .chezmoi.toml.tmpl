@@ -1,6 +1,6 @@
 {{- /* Machine identity, prompted once on `chezmoi init` and stored in
-       ~/.config/chezmoi/chezmoi.toml. Replaces the old ~/.config/host file,
-       which is now rendered from this value by dot_config/host.tmpl.
+       ~/.config/chezmoi/chezmoi.toml. Replaces the old ~/.config/host file;
+       fish/conf.d/00-host.fish.tmpl now bakes this value in directly.
 
        Valid values: macos | cachyos | other. These select fish/host/<name>/
        (see dot_config/fish/conf.d/00-host.fish) and the package set in
