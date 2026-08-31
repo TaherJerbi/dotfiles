@@ -1,0 +1,20 @@
+# Machine-local Alacritty overrides, rendered by chezmoi from
+# dot_config/alacritty/local.toml.tmpl. Imported by alacritty.toml.
+#
+# This exists because Alacritty launches $SHELL, and on macOS a GUI app's
+# $SHELL is frozen at login -- running `chsh` doesn't reach it until you log
+# out. Naming the shell explicitly sidesteps that entirely.
+
+{{ with lookPath "fish" -}}
+[terminal.shell]
+program = {{ . | quote }}
+args = ["--login"]
+{{- end }}
+{{ if eq .chezmoi.os "darwin" }}
+# Nerd Font for the icon glyphs nvim (nvim-tree, mini.icons) and herdr use.
+# Without a family here Alacritty uses Menlo, which has none of them.
+# Installed via: brew install --cask font-jetbrains-mono-nerd-font
+# bold/italic inherit this family, so it only needs naming once.
+[font.normal]
+family = "JetBrainsMono Nerd Font"
+{{- end }}

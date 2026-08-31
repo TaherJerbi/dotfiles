@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Installs the external tools this repo's configs (nvim, fish, alacritty,
+# herdr) rely on. Run by chezmoi *before* it writes any files.
+#
+# run_onchange_: chezmoi re-runs this only when the rendered content below
+# changes -- i.e. when the package list or the OS branch actually changes,
+# not on every apply.
+#
+# For a check-only report of what's installed (including the optional tools
+# this script doesn't manage), run ~/.config/setup/doctor.sh by hand.
+set -euo pipefail
+
+# Host: {{ .host }}
+{{ if eq .chezmoi.os "darwin" -}}
+PM="brew"
+# brew names differing from the command they provide. brew also splits the
+# tree-sitter CLI out of the 'tree-sitter' formula.
+PKGS=(git make unzip gcc ripgrep fd lazygit zoxide neovim tree-sitter-cli fish)
+CASKS=(alacritty)
+{{- else -}}
+PM="pacman"
+PKGS=(git make unzip gcc ripgrep fd lazygit zoxide neovim tree-sitter-cli fish alacritty)
+CASKS=()
+{{- end }}
+
+# cmd|package|why it's needed. Only missing commands trigger an install.
+DEPS="
+git|git|clone/update plugins (nvim, kickstart)
+make|make|build telescope-fzf-native and other native plugins
+unzip|unzip|mason package extraction (nvim LSP/formatter installs)
+cc|gcc|compile treesitter parsers and native plugins
+rg|ripgrep|telescope live grep
+fd|fd|telescope file finding
+lazygit|lazygit|<leader>lg in nvim, 'lg' fish alias
+zoxide|zoxide|fish 'z' jumping, herdr workspace switcher
+nvim|neovim|this nvim config (requires >= 0.12 for vim.pack)
+tree-sitter|tree-sitter-cli|compile treesitter parsers
+fish|fish|this fish config
+"
+
+missing=()
+while IFS='|' read -r cmd pkg reason; do
+  [ -z "$cmd" ] && continue
+  command -v "$cmd" >/dev/null 2>&1 || { echo "missing: $cmd -- $reason"; missing+=("$pkg"); }
+done <<EOF
+$DEPS
+EOF
+
+if [ "${#missing[@]}" -gt 0 ]; then
+  echo "Installing via $PM: ${missing[*]}"
+{{ if eq .chezmoi.os "darwin" -}}
+  brew install "${missing[@]}"
+{{- else -}}
+  sudo pacman -S --needed --noconfirm "${missing[@]}"
+{{- end }}
+fi
+
+{{ if eq .chezmoi.os "darwin" -}}
+command -v alacritty >/dev/null 2>&1 || brew install --cask alacritty
+{{- end }}
+
+# The nvim config uses vim.pack and the PackChanged event, both Neovim 0.12+.
+# On 0.11 init.lua aborts with "Invalid 'event': 'PackChanged'".
+if command -v nvim >/dev/null 2>&1; then
+  ver="$(nvim --version | head -1 | sed 's/^NVIM v//')"
+  major="${ver%%.*}"; rest="${ver#*.}"; minor="${rest%%.*}"
+  if [ "$major" -eq 0 ] && [ "$minor" -lt 12 ]; then
+    echo "WARNING: nvim $ver is too old; need >= 0.12 (vim.pack). Upgrade neovim." >&2
+  fi
+fi

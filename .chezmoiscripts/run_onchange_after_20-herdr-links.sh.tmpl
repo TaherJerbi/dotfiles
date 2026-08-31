@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Puts herdr's workspace scripts on PATH. Runs *after* chezmoi writes files,
+# because it links to scripts chezmoi has just placed in ~/.config/herdr.
+#
+# run_onchange_ with the script hashes below: re-runs only when those scripts
+# change, not on every apply.
+#
+# switcher hash: {{ include "dot_config/herdr/scripts/executable_herdr-workspace-switcher" | sha256sum }}
+# preview  hash: {{ include "dot_config/herdr/scripts/executable_herdr-workspace-preview" | sha256sum }}
+set -euo pipefail
+
+SRC="$HOME/.config/herdr/scripts"
+DEST="$HOME/.local/bin"
+mkdir -p "$DEST"
+
+for name in herdr-workspace-switcher herdr-workspace-preview; do
+  ln -sf "$SRC/$name" "$DEST/$name"
+done
+
+echo "Linked herdr workspace scripts into $DEST"

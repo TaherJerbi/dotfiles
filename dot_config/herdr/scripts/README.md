@@ -18,8 +18,6 @@ workspace switching.
 
 ## Setup (fresh install)
 
-```sh
-./setup.sh
-```
-
-Symlinks the scripts into `~/.local/bin`.
+Handled by chezmoi: `.chezmoiscripts/run_onchange_after_20-herdr-links.sh.tmpl`
+symlinks these scripts into `~/.local/bin` on `chezmoi apply`, and re-runs only
+when one of them changes.

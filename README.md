@@ -1,25 +1,67 @@
-# ~/.config
+# dotfiles
 
 One config repo tracked across several machines — currently macOS and CachyOS.
-Most of it is shared; anything that differs per machine is selected by a
-**machine identity** rather than by sniffing the OS.
+Managed with [chezmoi](https://www.chezmoi.io/): this repo is the chezmoi
+*source directory*, and it lives at `~/.local/share/chezmoi`.
 
-## The identity file
+Most of it is shared; anything that differs per machine is selected either by
+the OS (`.chezmoi.os`) or by a **machine identity**, never by ad-hoc sniffing.
 
-`~/.config/host` holds one word on one line. It's gitignored, because it's
-per-machine by definition.
+## Layout
+
+Source paths map to targets under `$HOME` by chezmoi's naming conventions —
+`dot_config/fish/config.fish` becomes `~/.config/fish/config.fish`.
+
+| source                                    | target / role                          |
+| ----------------------------------------- | -------------------------------------- |
+| `dot_config/**`                           | everything under `~/.config`           |
+| `.chezmoi.toml.tmpl`                      | prompts for the machine identity       |
+| `.chezmoiignore`                          | targets chezmoi must never touch       |
+| `.chezmoiscripts/run_onchange_before_10-packages.sh.tmpl` | installs dependencies  |
+| `.chezmoiscripts/run_onchange_after_20-herdr-links.sh.tmpl` | herdr scripts onto PATH |
+
+Prefixes that matter here: `executable_` preserves the +x bit, `private_`
+preserves 0600/0700, `symlink_` creates a symlink whose content is its target,
+and `.tmpl` marks a file rendered as a Go template.
+
+## Setting up a machine
 
 ```bash
-echo macos > ~/.config/host
+sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply taherjerbi
 ```
 
-Valid values today: `macos`, `cachyos`, `other`. `other` is the escape hatch:
-shared config only, nothing machine-specific loads or installs.
+That clones this repo, prompts for the identity, installs missing
+dependencies, and writes every config into place. To script the prompt (note
+the key is the *prompt text*, not the variable name):
+
+```bash
+chezmoi init --apply --promptString "Host identity (macos/cachyos/other)=macos" taherjerbi
+```
+
+Day to day:
+
+```bash
+chezmoi diff        # what would change
+chezmoi apply       # write it
+chezmoi add <file>  # start tracking an existing file
+chezmoi cd          # shell in the source dir, to commit and push
+```
+
+## The machine identity
+
+One word, answered once at `chezmoi init` and stored in
+`~/.config/chezmoi/chezmoi.toml` as `data.host`. Valid values today: `macos`,
+`cachyos`, `other`. `other` is the escape hatch: shared config only.
+
+`dot_config/host.tmpl` renders it back out to `~/.config/host`, which is what
+fish reads. Prefer `.chezmoi.os` (`darwin`/`linux`) for anything the OS alone
+can decide; reserve `.host` for what it can't — telling two Linux boxes apart.
 
 ## fish
 
-`fish/conf.d/00-host.fish` reads the file into `$DOTS_HOST` and wires up
-`fish/host/$DOTS_HOST/`, which is laid out like a fish config dir of its own:
+`fish/conf.d/00-host.fish` reads `~/.config/host` into `$DOTS_HOST` and wires
+up `fish/host/$DOTS_HOST/`, which is laid out like a fish config dir of its
+own:
 
 | path                        | what happens                       |
 | --------------------------- | ---------------------------------- |
@@ -30,52 +72,42 @@ shared config only, nothing machine-specific loads or installs.
 Prepended, not appended, so a host can override something shared — macOS
 overrides `fish_prompt` with pure's.
 
-## setup
+## Dependencies
 
-`setup/setup.sh` checks that the tools these configs depend on are installed,
-and with `--install` installs the missing ones. It refuses to run at all
-without a valid identity.
+`run_onchange_before_10-packages.sh.tmpl` installs the required tools (git,
+make, unzip, cc, rg, fd, lazygit, zoxide, nvim ≥ 0.12, tree-sitter, fish,
+alacritty) via brew or pacman. `run_onchange_` means it re-runs only when its
+rendered content changes, not on every apply.
+
+For a check-only report — including the optional tools that script doesn't
+manage (herdr, fzf, jq, eza, bat, clipboard, Karabiner-Elements):
 
 ```bash
-./setup/setup.sh            # check only, print a report
-./setup/setup.sh --install  # also install what's missing
+~/.config/setup/doctor.sh
 ```
-
-It holds only what is true on every machine — the list of required commands and
-why each is needed. `setup/$HOST-setup.sh` is sourced for the machine-specific
-half and overrides these hooks:
-
-| hook                  | contract                                                       |
-| --------------------- | -------------------------------------------------------------- |
-| `HOST_PM`             | package manager name, for messages; `none` disables installing |
-| `host_pkg <cmd>`      | package providing `<cmd>` here, or nothing if unavailable      |
-| `host_install <pkg>…` | install them                                                   |
-| `host_checks`         | extra `report_line` checks                                     |
-| `host_post`           | generated files / symlinks                                     |
-
-What that currently covers: on macOS, brew and casks, the karabiner and
-`pbcopy` checks, and generating `alacritty/local.toml`; on CachyOS, pacman, the
-xclip/xsel/wl-copy check, and the `rofimoji.rc` symlink.
 
 ## Adding a machine
 
 1. Pick a one-word name, e.g. `parrotos`.
-2. `echo parrotos > ~/.config/host`
-3. Add `fish/host/parrotos/conf.d/00-parrotos.fish` (plus `functions/` and
-   `completions/` beside it, if it needs them).
-4. Add `setup/parrotos-setup.sh` defining whichever hooks apply.
+2. Add it to the prompt text in `.chezmoi.toml.tmpl`.
+3. Add `dot_config/fish/host/parrotos/conf.d/00-parrotos.fish` (plus
+   `functions/` and `completions/` beside it, if it needs them).
+4. If its package manager isn't brew or pacman, extend the OS branch in
+   `.chezmoiscripts/run_onchange_before_10-packages.sh.tmpl`.
 
-The name list is hardcoded in exactly one place — the `case` in
-`setup/setup.sh` that gates on `macos|cachyos|other`. Extend it there, or setup
-will refuse the new name. fish needs no such edit; it just loads
-`fish/host/<name>/` if the directory exists.
+fish needs no edit; it just loads `fish/host/<name>/` if it exists.
 
-## Machine-local files (all gitignored)
+## Machine-local files (never tracked)
 
-| file                     | what it is                                  |
-| ------------------------ | ------------------------------------------- |
-| `host`                   | the machine identity, above                 |
-| `fish/conf.d/local.fish` | secrets and per-machine overrides           |
-| `fish/fish_variables`    | fish's own universal-variable state         |
-| `alacritty/local.toml`   | generated by `setup/macos-setup.sh`         |
-| `rofimoji.rc`            | symlink created by `setup/cachyos-setup.sh` |
+Listed in `.chezmoiignore`, so chezmoi will neither create nor remove them.
+
+| file                          | what it is                            |
+| ----------------------------- | ------------------------------------- |
+| `fish/conf.d/local.fish`      | secrets and per-machine overrides     |
+| `fish/fish_variables`         | fish's own universal-variable state   |
+| `nvim/nvim-pack-lock.json`    | written by `vim.pack`                 |
+| `karabiner/automatic_backups` | Karabiner-Elements' own backups       |
+| `herdr/*.log`, `*.sock`       | herdr runtime state                   |
+
+`alacritty/local.toml` and `rofimoji.rc` used to be on this list — they're now
+a template and a `symlink_` entry respectively, so chezmoi generates both.

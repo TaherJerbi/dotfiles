@@ -1,0 +1,11 @@
+{{- /* Machine identity, prompted once on `chezmoi init` and stored in
+       ~/.config/chezmoi/chezmoi.toml. Replaces the old ~/.config/host file,
+       which is now rendered from this value by dot_config/host.tmpl.
+
+       Valid values: macos | cachyos | other. These select fish/host/<name>/
+       (see dot_config/fish/conf.d/00-host.fish) and the package set in
+       .chezmoiscripts/run_onchange_before_10-packages.sh.tmpl. */ -}}
+{{- $host := promptStringOnce . "host" "Host identity (macos/cachyos/other)" -}}
+
+[data]
+    host = {{ $host | quote }}
