@@ -27,3 +27,10 @@ mise install --yes
 # Shims are how a non-fish context (a systemd unit, a bare `sh -c`) finds
 # these; fish itself uses `mise activate` from config.fish.
 mise reshim
+
+# bash isn't chezmoi-managed, so activate mise by appending to the user's
+# existing ~/.bashrc instead of overwriting it.
+MISE_ACTIVATE_LINE='eval "$(mise activate bash)"'
+if [ -f "$HOME/.bashrc" ] && ! grep -qF "$MISE_ACTIVATE_LINE" "$HOME/.bashrc"; then
+  printf '\n%s\n' "$MISE_ACTIVATE_LINE" >> "$HOME/.bashrc"
+fi
