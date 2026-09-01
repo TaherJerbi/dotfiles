@@ -85,7 +85,14 @@ EOF
 # mise carries every other tool, so it has to exist before the after-script
 # runs. It goes somewhere root can reach: the after-script installs tools
 # system-wide with sudo, and root's PATH is not the user's.
-if ! have_cmd mise && [ ! -x /usr/local/bin/mise ]; then
+# A mise under $HOME does not count. Left over from when this repo installed
+# it per-user, it would otherwise satisfy this check forever and the system
+# install would never happen.
+mise_path=$(command -v mise 2>/dev/null || true)
+case "$mise_path" in
+  "" | "$HOME"/*) mise_path="" ;;
+esac
+if [ -z "$mise_path" ] && [ ! -x /usr/local/bin/mise ]; then
   echo "missing: mise (installs every other tool)"
 {{- if eq $fam "brew" }}
   brew install mise
