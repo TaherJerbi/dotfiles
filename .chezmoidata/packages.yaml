@@ -1,6 +1,7 @@
 # What this repo's configs need, and where each piece comes from. Consumed by
 # .chezmoiscripts/run_onchange_before_10-packages.sh.tmpl (system packages),
-# dot_config/mise/config.toml.tmpl (everything mise carries), and
+# .chezmoiscripts/run_onchange_after_20-mise.sh.tmpl (everything mise carries,
+# via /etc/mise/config.toml), and
 # dot_config/setup/executable_doctor.sh.tmpl (report only).
 
 # Keyed by .pkgfamily, and now only for the handful of tools mise has no

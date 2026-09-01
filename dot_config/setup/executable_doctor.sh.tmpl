@@ -33,10 +33,11 @@ echo
 
 # Most tools live behind mise, so a shell that never activated it would report
 # everything missing.
-PATH="$HOME/.local/bin:$PATH"
+PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
 if have mise; then
   report mise ok "$(mise --version 2>/dev/null | head -1)"
-  PATH="${MISE_DATA_DIR:-$HOME/.local/share/mise}/shims:$PATH"
+  # Tools are installed system-wide; see run_onchange_after_20-mise.sh.tmpl.
+  PATH="${MISE_SYSTEM_DATA_DIR:-/usr/local/share/mise}/shims:$PATH"
 else
   report mise MISSING "installs every tool marked (mise) below"
 fi

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Installs the pieces mise has no entry for -- a C toolchain, the login shell,
 # the GUI terminal -- plus mise itself. Everything else is in
-# ~/.config/mise/config.toml, installed by run_onchange_after_20-mise.sh.
+# /etc/mise/config.toml, installed by run_onchange_after_20-mise.sh.
 # Report-only counterpart: ~/.config/setup/doctor.sh.
 set -euo pipefail
 {{ $fam := .pkgfamily -}}
@@ -83,15 +83,15 @@ EOF
 {{ end -}}
 
 # mise carries every other tool, so it has to exist before the after-script
-# runs. Only brew and pacman package it; elsewhere take upstream's installer,
-# which drops a static binary in ~/.local/bin and needs no sudo.
-if ! have_cmd mise && [ ! -x "$HOME/.local/bin/mise" ]; then
+# runs. It goes somewhere root can reach: the after-script installs tools
+# system-wide with sudo, and root's PATH is not the user's.
+if ! have_cmd mise && [ ! -x /usr/local/bin/mise ]; then
   echo "missing: mise (installs every other tool)"
 {{- if eq $fam "brew" }}
   brew install mise
 {{- else if eq $fam "arch" }}
   sudo pacman -Sy mise --noconfirm --needed
 {{- else }}
-  curl -fsSL https://mise.run | sh
+  curl -fsSL https://mise.run | sudo MISE_INSTALL_PATH=/usr/local/bin/mise sh
 {{- end }}
 fi

@@ -8,3 +8,6 @@
 
 # Superseded by the baked-in value in fish/conf.d/00-host.fish.tmpl.
 .config/host
+
+# mise's tool list moved to /etc/mise/config.toml so root shares the installs.
+.config/mise/config.toml

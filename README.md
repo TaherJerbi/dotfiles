@@ -76,13 +76,25 @@ the `system:` line:
   tools mise has no entry for — `git`, `make`, `cc`, `unzip`, `fish`,
   `alacritty` — and mise itself. A distro whose family isn't recognised
   installs nothing and reports what's missing.
-- `.chezmoiscripts/run_onchange_after_20-mise.sh.tmpl` runs `mise install`
-  against the generated `~/.config/mise/config.toml`. It has to be an `after`
-  script: chezmoi writes that config while applying the source state, which is
-  after the before-scripts have run.
+- `.chezmoiscripts/run_onchange_after_20-mise.sh.tmpl` generates
+  `/etc/mise/config.toml` and installs it with `sudo env
+  MISE_DATA_DIR=/usr/local/share/mise mise install`. Not `mise install
+  --system`: that flag changes where tools land but still asks "already
+  installed?" of the invoking user's data dir, so it quietly no-ops whenever
+  that user already has them.
+
+Tools go in system-wide — `/usr/local/share/mise/installs`, with shims in
+`/usr/local/share/mise/shims` — rather than under `~`, so root gets the same
+ones. Otherwise uninstalling a distro package to stop it clashing with mise's
+copy also takes it away from `sudo`. Every user's mise searches that directory
+on its own, and `/etc/mise/config.toml` is the lowest-precedence config in the
+chain, so a personal or per-project `mise.toml` still wins. Where `sudo`
+enforces a `secure_path` the script adds the shims to it via
+`/etc/sudoers.d/10-mise-shims`. All of which means `chezmoi apply` asks for a
+password whenever the tool list changes.
 
 `mise` versions are `latest` unless a tool sets `version:`, so upgrading is
-`mise upgrade` rather than a hand-edited URL. `minversion` survives as a floor
+`sudo mise upgrade` rather than a hand-edited URL. `minversion` survives as a floor
 `doctor.sh` reports; nothing enforces it, because mise's `latest` clears every
 floor this repo has.
 

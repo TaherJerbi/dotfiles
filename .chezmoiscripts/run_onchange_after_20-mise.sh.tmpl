@@ -1,32 +1,88 @@
 #!/usr/bin/env bash
-# Installs everything in ~/.config/mise/config.toml. An `after` script, not a
-# `before` one: chezmoi writes that config as part of applying the source
-# state, which happens after the before-scripts run.
+# Installs every mise-managed tool system-wide: the tool list goes to
+# /etc/mise/config.toml and the builds to /usr/local/share/mise/installs.
+#
+# System-wide rather than per-user so root sees the same tools. Otherwise
+# uninstalling a distro package to stop it clashing with mise's copy (neovim,
+# say) also takes it away from `sudo`.
+#
+# An `after` script by inheritance from when the config lived in ~/.config;
+# harmless, and it keeps mise running once the rest of the dotfiles are in place.
 set -euo pipefail
 
-{{/* The rendered tool list, so editing .chezmoidata/packages.yaml re-runs this.
-     chezmoi hashes this file's contents, and it would otherwise never change. */ -}}
-{{- range .tools }}
-{{-   if and (not (dig "system" false .)) (or (not (hasKey . "hosts")) (has $.host .hosts)) }}
-# tool: {{ dig "mise" .cmd . }} {{ dig "version" "latest" . }}
-{{-   end }}
-{{- end }}
+SYSTEM_DATA_DIR=/usr/local/share/mise
 
-# Bootstrapped into ~/.local/bin by the package script, which may not be on
-# PATH in a non-interactive shell yet.
-PATH="$HOME/.local/bin:$PATH"
+# Set by the package script, which may not be on PATH in a non-interactive
+# shell yet. /usr/local/bin is where the non-brew, non-pacman path puts it.
+PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
 
 if ! command -v mise >/dev/null 2>&1; then
   echo "mise is not installed; skipping. See the package script." >&2
   exit 0
 fi
 
-echo "Installing tools with mise..."
-mise install --yes
+# The system config: lowest precedence in mise's chain, and read by every user
+# on the box including root. A user's own ~/.config/mise/config.toml still
+# wins, so per-project and per-user pins keep working.
+echo "Writing /etc/mise/config.toml..."
+sudo mkdir -p /etc/mise
+sudo tee /etc/mise/config.toml >/dev/null <<'EOF'
+# Generated from .chezmoidata/packages.yaml by chezmoi -- edit there, not here.
+# Every tool with a `mise:` field lands below; the rest come from this
+# machine's package manager via chezmoi's package script.
+#
+# Installed by .chezmoiscripts/run_onchange_after_20-mise.sh.tmpl.
 
-# Shims are how a non-fish context (a systemd unit, a bare `sh -c`) finds
+[tools]
+{{- range .tools }}
+{{-   if and (not (dig "system" false .)) (or (not (hasKey . "hosts")) (has $.host .hosts)) }}
+{{ dig "mise" .cmd . | quote }} = {{ dig "version" "latest" . | quote }}
+{{-   end }}
+{{- end }}
+EOF
+
+# Overriding the data dir, rather than `mise install --system`: --system
+# changes where tools land but still asks "already installed?" of the *user's*
+# data dir, so it no-ops with "all tools are installed" whenever the invoking
+# user already has them -- and sudo hands root $HOME on macOS. Pointing the
+# data dir at the system one makes the check and the destination the same
+# place. Every user's mise searches $SYSTEM_DATA_DIR/installs on its own, so
+# they still need no config of their own to see the result.
+#
+# The cache and state dirs come along for the ride because they are derived
+# from $HOME, which sudo hands root unchanged on macOS -- without this root
+# writes root-owned files into ~/Library/Caches/mise and every later user-run
+# mise command fails on them.
+sudo_mise() {
+  sudo env MISE_DATA_DIR="$SYSTEM_DATA_DIR" \
+           MISE_CACHE_DIR="$SYSTEM_DATA_DIR/cache" \
+           MISE_STATE_DIR="$SYSTEM_DATA_DIR/state" \
+           mise "$@"
+}
+
+echo "Installing tools with mise (system-wide)..."
+sudo_mise install --yes
+
+# Shims are how a non-fish context (a systemd unit, a bare `sh -c`, sudo) finds
 # these; fish itself uses `mise activate` from config.fish.
-mise reshim
+sudo_mise reshim
+
+# sudo on Debian and friends replaces PATH with secure_path, so the shims are
+# invisible to it however the caller's PATH is set. macOS ships no secure_path
+# and needs none of this.
+if sudo grep -qE '^\s*Defaults\s+secure_path' /etc/sudoers 2>/dev/null; then
+  drop=/etc/sudoers.d/10-mise-shims
+  tmp=$(mktemp)
+  # A bad file here breaks sudo for good, so visudo checks it before install.
+  printf 'Defaults secure_path="%s/shims:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"\n' \
+    "$SYSTEM_DATA_DIR" > "$tmp"
+  if sudo visudo -cqf "$tmp"; then
+    sudo install -m 0440 -o root -g root "$tmp" "$drop"
+  else
+    echo "generated sudoers snippet failed visudo; not installing it" >&2
+  fi
+  rm -f "$tmp"
+fi
 
 # bash isn't chezmoi-managed, so activate mise by appending to the user's
 # existing ~/.bashrc instead of overwriting it.
