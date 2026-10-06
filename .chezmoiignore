@@ -33,8 +33,14 @@
 .config/rofimoji.rc
 {{ end }}
 
+# My skills live in ~/.agents/skills so any agent harness can use them; each
+# harness gets a symlink to them (~/.claude/skills/<name>). Skills installed
+# by the `skills` CLI (npx skills) are its business, not mine.
+.agents/.skill-lock.json
+.agents/skills/herdr
+
 # Claude Code keeps credentials, chat history and session state next to its
-# config. Only settings.json and my own skills are tracked; this keeps a
+# config. Only settings.json and my skill links are tracked; this keeps a
 # stray `chezmoi add ~/.claude` from picking up the rest.
 .claude/*
 !.claude/settings.json
@@ -44,6 +50,7 @@
 
 # hyper-shortcut drives this machine's keyd + KDE setup.
 {{ if ne .host "cachyos" }}
+.agents/skills/hyper-shortcut
 .claude/skills/hyper-shortcut
 {{ end }}
 
