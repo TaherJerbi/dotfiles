@@ -1,10 +1,5 @@
 {
   "model": "opus",
-  "modelSettings": {
-    "claude-sonnet-5": {
-      "effortLevel": "low"
-    }
-  },
   "tui": "fullscreen",
   "theme": "dark",
   "switchModelsOnFlag": true
