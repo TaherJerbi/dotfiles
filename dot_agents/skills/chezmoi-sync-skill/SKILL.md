@@ -1,5 +1,5 @@
 ---
-name: sync-skill
+name: chezmoi-sync-skill
 description: "Add an agent skill to the user's chezmoi dotfiles so it syncs to their other machines, or push local edits of an already-synced skill back into chezmoi. Use when the user asks to sync, track, add or save a skill to chezmoi or their dotfiles. Skills are only synced when the user explicitly asks."
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: vault-note
+name: obsidian-add-note
 description: "Write or add a note to the user's Obsidian vault (~/vaults/main), e.g. 'add this to a note in my vault', 'save the learnings to my inbox'. Use whenever creating or substantially writing a note in that vault."
 ---
 
