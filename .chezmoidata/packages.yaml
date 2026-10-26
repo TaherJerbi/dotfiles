@@ -81,5 +81,5 @@ tools:
   - cmd: eza
   - cmd: bat
   - cmd: herdr
-    deps: [zoxide, fzf, jq, eza, bat]
+    deps: [zoxide, fzf, fd, jq, eza, bat]
     hosts: [macos, cachyos]

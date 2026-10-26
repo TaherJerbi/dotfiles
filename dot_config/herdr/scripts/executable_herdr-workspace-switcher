@@ -1,24 +1,105 @@
 #!/usr/bin/env bash
 # Popup command for herdr: fuzzy-pick an open workspace or a zoxide-known
 # directory, then focus that workspace or create a new one there.
+# ctrl-f switches to a filesystem-wide directory search (fd over
+# $HERDR_SWITCHER_ROOTS, default $HOME); ctrl-r switches back; ctrl-d then
+# enter closes the highlighted open workspace.
 set -euo pipefail
 
 sep=$'\x01'
+self=$(realpath "${BASH_SOURCE[0]}")
+home=$(realpath "$HOME")
 
-workspaces=$(herdr workspace list | jq -r --arg s "$sep" '
-  .result.workspaces[]
-  | ["ws", .workspace_id, "  " + .label + "  (open)"]
-  | join($s)
-')
+# Canonical paths on stdin -> picker lines, deduped in order, shown with ~.
+dir_lines() {
+  awk -v s="$sep" -v h="$home" '
+    !seen[$0]++ {
+      d = $0
+      if (d == h) d = "~"
+      else if (index(d, h "/") == 1) d = "~" substr(d, length(h) + 1)
+      print "dir" s $0 s "  " d
+    }
+  '
+}
 
-dirs=$(zoxide query -l 2>/dev/null | awk -v s="$sep" '{ print "dir" s $0 s "  " $0 }')
+# Paths on stdin -> the ones that are still dirs, canonicalised so symlinked
+# aliases (/root -> /mnt/persistent) fold together. Avoids GNU-only flags
+# (xargs -d/-r, realpath -e) so it also runs on macOS's BSD tools.
+canonical_dirs() {
+  local d dirs=()
+  while IFS= read -r d; do
+    if [ -d "$d" ]; then dirs+=("$d"); fi
+  done
+  # One realpath call, not one per dir: zoxide lists can be long.
+  if [ ${#dirs[@]} -gt 0 ]; then realpath "${dirs[@]}" 2>/dev/null || true; fi
+}
+
+list_known() {
+  herdr workspace list | jq -r --arg s "$sep" '
+    .result.workspaces[]
+    | ["ws", .workspace_id, "  " + .label + "  (open)"]
+    | join($s)
+  '
+  zoxide query -l 2>/dev/null | canonical_dirs | dir_lines
+}
+
+list_fs() {
+  local d roots=()
+  # shellcheck disable=SC2086 # roots are a space-separated list
+  while IFS= read -r d; do roots+=("$d"); done < <(
+    printf '%s\n' ${HERDR_SWITCHER_ROOTS:-$HOME} | canonical_dirs | sort -u
+  )
+  # With no roots fd would search the cwd instead.
+  if [ ${#roots[@]} -eq 0 ]; then return 0; fi
+  # fd skips .gitignored paths (node_modules, build output) by default.
+  fd --type d --hidden --absolute-path --exclude .git . "${roots[@]}" 2>/dev/null \
+    | sed 's:/$::' \
+    | dir_lines
+}
+
+known_prompt="workspace/dir> "
+
+# ctrl-d arms a close (the prompt asks for confirmation); enter while armed
+# confirms. Both run from fzf's transform and print fzf actions.
+arm_close() {
+  local kind=$1 label=$2
+  [ "$kind" = ws ] || return 0
+  label=${label% (open)}
+  echo "change-prompt(close $(echo $label)? enter confirms, esc cancels > )"
+}
+
+confirm_close() {
+  herdr workspace close "$1" >/dev/null
+  echo "change-prompt($known_prompt)+reload('$self' --list-known)"
+}
+
+case "${1:-}" in
+  --list-known) list_known; exit 0 ;;
+  --list-fs) list_fs; exit 0 ;;
+  --arm-close) arm_close "$2" "$3"; exit 0 ;;
+  --confirm-close) confirm_close "$2"; exit 0 ;;
+esac
+
+# Shortcut bar: a label on a bottom border, which (unlike --header) spans
+# the preview column too.
+bar=" enter open   ctrl-d close workspace   ctrl-f search filesystem   ctrl-r workspaces/recent   esc quit "
 
 selection=$(
-  { [ -n "$workspaces" ] && printf '%s\n' "$workspaces"
-    [ -n "$dirs" ] && printf '%s\n' "$dirs"
-  } | fzf --delimiter="$sep" --with-nth=3 --prompt="workspace/dir> " \
+  # tiebreak=index: on equal match scores, keep input order so open
+  # workspaces beat same-named dirs (fzf's default prefers shorter lines).
+  # Moving, typing or esc disarms a pending close; esc only quits when
+  # nothing is armed.
+  # --with-shell: binds use sh syntax, but fzf defaults to $SHELL (maybe fish).
+  list_known | fzf --with-shell 'bash -c' --delimiter="$sep" --with-nth=3 --prompt="$known_prompt" --tiebreak=index \
+      --border=bottom --border-label="$bar" --border-label-pos=0:bottom \
+      --bind "ctrl-d:transform:'$self' --arm-close {1} {3}" \
+      --bind "enter:transform:case \$FZF_PROMPT in close*) '$self' --confirm-close {2};; *) echo accept;; esac" \
+      --bind "focus,change:transform:case \$FZF_PROMPT in close*) echo 'change-prompt($known_prompt)';; esac" \
+      --bind "esc:transform:case \$FZF_PROMPT in close*) echo 'change-prompt($known_prompt)';; *) echo abort;; esac" \
+      --bind "ctrl-f:change-prompt(filesystem> )+clear-query+reload('$self' --list-fs)" \
+      --bind "ctrl-r:change-prompt($known_prompt)+clear-query+reload('$self' --list-known)" \
       --ansi --preview 'herdr-workspace-preview {}' --preview-window=right:55%:wrap
-)
+) || true
 
 [ -z "$selection" ] && exit 0
 
@@ -28,5 +109,7 @@ payload=$(cut -d "$sep" -f2 <<<"$selection")
 if [ "$kind" = ws ]; then
   herdr workspace focus "$payload" >/dev/null
 else
+  zoxide add "$payload" 2>/dev/null || true
   herdr workspace create --cwd "$payload" --label "$(basename "$payload")" --focus >/dev/null
 fi
+
