@@ -1,0 +1,107 @@
+# if not running interactively, don't do anything
+case $- in
+*i*) ;;
+*) return ;;
+esac
+
+# general options
+set -o noclobber
+shopt -s checkwinsize
+PROMPT_DIRTRIM=3
+bind Space:magic-space
+shopt -s globstar 2>/dev/null
+
+# history
+shopt -s histappend
+shopt -s cmdhist
+PROMPT_COMMAND='history -a'
+HISTSIZE=999999999
+HISTFILESIZE=999999999
+HISTCONTROL="erasedups:ignoreboth"
+export HISTIGNORE="&:[ ]*:exit:ls:bg:fg:history:clear"
+HISTTIMEFORMAT='%F %T '
+
+# directory navigation
+shopt -s autocd 2>/dev/null
+shopt -s dirspell 2>/dev/null
+shopt -s cdspell 2>/dev/null
+CDPATH="."
+shopt -s cdable_vars
+
+# env
+export XDG_CONFIG_HOME="$HOME/.config"
+export EDITOR=nvim
+export VISUAL=nvim
+
+# which machine this is, like fish's conf.d/00-host.fish; baked in by chezmoi
+export DOTS_HOST={{ .host | quote }}
+
+export TERM=xterm-256color
+export COLORTERM=truecolor
+export TZ=America/Toronto
+
+# make less more friendly for non-text input files, see lesspipe(1)
+[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+
+# set variable identifying the chroot you work in (used in the prompt below)
+if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
+	debian_chroot=$(cat /etc/debian_chroot)
+fi
+
+# enable color prompt if terminal supports it
+if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
+	PS1='${debian_chroot:+($debian_chroot)}\[\033[01;34m\]\w\[\033[33m\]$(__git_ps1 " (%s)")\[\033[00m\]\$ '
+else
+	PS1='\w$(__git_ps1 " (%s)")\$ '
+fi
+
+# if this is an xterm set the title to user@host
+case "$TERM" in
+xterm* | rxvt*)
+	PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h\a\]$PS1"
+	;;
+*) ;;
+esac
+
+# alias definitions
+if [ -f ~/.bash_aliases ]; then
+	. ~/.bash_aliases
+fi
+
+# source bash-completion (provides __git_ps1 used by PS1); GIT_PS1_* tunes its output
+GIT_PS1_SHOWDIRTYSTATE=1
+GIT_PS1_SHOWUNTRACKEDFILES=1
+GIT_PS1_SHOWUPSTREAM="verbose"
+GIT_PS1_SHOWCONFLICTSTATE="yes"
+GIT_PS1_SHOWCOLORHINTS=1
+if ! shopt -oq posix; then
+	if [ -f /usr/share/bash-completion/bash_completion ]; then
+		. /usr/share/bash-completion/bash_completion
+	elif [ -f /etc/bash_completion ]; then
+		. /etc/bash_completion
+	fi
+fi
+
+# mise: tools installed from ~/.config/mise/config.toml. Must precede the herdr
+# exec below, or the server -- and every plugin it spawns, worktrunk included --
+# starts without the shims on PATH. Each repo needs an explicit `mise trust`; a
+# mise.toml can run commands, so cloning one must not.
+if [ -d "${MISE_DATA_DIR:-$HOME/.local/share/mise}/shims" ]; then
+	PATH="${MISE_DATA_DIR:-$HOME/.local/share/mise}/shims:$PATH"
+fi
+command -v mise &>/dev/null && eval "$(mise activate bash)"
+
+# zoxide: record every cd, so herdr-workspace-switcher can offer those dirs
+command -v zoxide &>/dev/null && eval "$(zoxide init bash)"
+
+# machine-local config, deliberately untracked: work env setup and aliases,
+# secrets, and HERDR_START_DIR for the herdr launch below
+if [ -f ~/.config/bash/local.bash ]; then
+	. ~/.config/bash/local.bash
+fi
+
+# open herdr if not already inside a herdr pane
+if command -v herdr &>/dev/null && [ -z "$HERDR_ENV" ]; then
+	cd "${HERDR_START_DIR:-$HOME}" 2>/dev/null
+	exec herdr
+fi

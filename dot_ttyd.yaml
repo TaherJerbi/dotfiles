@@ -1,0 +1,35 @@
+fontFamily: "JetBrainsMono Nerd Font Mono, courier-new, courier, monospace"
+fontSize: 14
+cursorBlink: true
+cursorInactiveStyle: outline
+scrollback: 10000
+drawBoldTextInBrightColors: false
+macOptionIsMeta: true
+rightClickSelectsWord: true
+fastScrollSensitivity: 5
+smoothScrollDuration: 125
+wordSeparator: " ()[]{}',\""
+theme:
+  background: "#000000"
+  foreground: "#d1d5da"
+  cursor: "#c8e1ff"
+  cursorAccent: "#000000"
+  selectionBackground: "#264f78"
+  selectionForeground: "#e1e4e8"
+  selectionInactiveBackground: "#282e34"
+  black: "#24292e"
+  red: "#ea4a5a"
+  green: "#34d058"
+  yellow: "#ffab70"
+  blue: "#0366d6"
+  magenta: "#b392f0"
+  cyan: "#9ecbff"
+  white: "#d1d5da"
+  brightBlack: "#6a737d"
+  brightRed: "#f97583"
+  brightGreen: "#85e89d"
+  brightYellow: "#ffab70"
+  brightBlue: "#79b8ff"
+  brightMagenta: "#b392f0"
+  brightCyan: "#dbedff"
+  brightWhite: "#e1e4e8"

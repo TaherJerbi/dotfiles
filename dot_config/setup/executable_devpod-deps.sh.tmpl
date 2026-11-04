@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Reinstalls what a pod rebuild wipes, run from ~/.poseidon_init/setup.sh on
+# every pod start. A rebuild keeps only /mnt/persistent (= $HOME), so mise and
+# its tools survive in ~/.local; the apt packages don't, and chezmoi won't
+# re-run its run_onchange_ scripts for them because its state survives too.
+#
+# Same package list as chezmoi's package script, from .chezmoidata/packages.yaml.
+set -euo pipefail
+
+{{ template "system-packages.sh" . }}
+
+# Normally a no-op; catches a tool whose install a rebuild interrupted.
+PATH="$HOME/.local/bin:$PATH"
+if command -v mise >/dev/null 2>&1; then
+  mise install --yes
+else
+  echo "mise is missing; run \`chezmoi apply\` to reinstall it." >&2
+fi

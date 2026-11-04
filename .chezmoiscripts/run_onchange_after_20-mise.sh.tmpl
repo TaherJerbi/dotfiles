@@ -1,19 +1,24 @@
 #!/usr/bin/env bash
-# Installs every mise-managed tool system-wide: the tool list goes to
-# /etc/mise/config.toml and the builds to /usr/local/share/mise/installs.
+# Installs every mise-managed tool. The tool list comes from
+# .chezmoidata/packages.yaml via .chezmoitemplates/mise-tools.toml.
 #
-# System-wide rather than per-user so root sees the same tools. Otherwise
-# uninstalling a distro package to stop it clashing with mise's copy (neovim,
-# say) also takes it away from `sudo`.
+# Everywhere but the devpod it's system-wide: the tool list goes to
+# /etc/mise/config.toml and the builds to /usr/local/share/mise/installs, so
+# root sees the same tools. Otherwise uninstalling a distro package to stop it
+# clashing with mise's copy (neovim, say) also takes it away from `sudo`.
+#
+# The devpod installs per-user instead: only /mnt/persistent (= $HOME) survives
+# a pod rebuild, and chezmoi's record of having run this script survives with
+# it, so a system-wide install would vanish and never come back. Root is the
+# only user there anyway.
 #
 # An `after` script by inheritance from when the config lived in ~/.config;
 # harmless, and it keeps mise running once the rest of the dotfiles are in place.
 set -euo pipefail
 
-SYSTEM_DATA_DIR=/usr/local/share/mise
-
 # Set by the package script, which may not be on PATH in a non-interactive
-# shell yet. /usr/local/bin is where the non-brew, non-pacman path puts it.
+# shell yet. /usr/local/bin is where the non-brew, non-pacman path puts it;
+# ~/.local/bin is the devpod's.
 PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
 
 if ! command -v mise >/dev/null 2>&1; then
@@ -21,24 +26,28 @@ if ! command -v mise >/dev/null 2>&1; then
   exit 0
 fi
 
+{{ if eq .host "devpod" -}}
+# The user config, which on the devpod is chezmoi's to generate. The devpod's
+# .bashrc activates mise, so there is no sudo or secure_path to deal with.
+echo "Writing ~/.config/mise/config.toml..."
+mkdir -p "$HOME/.config/mise"
+cat >"$HOME/.config/mise/config.toml" <<'EOF'
+{{ template "mise-tools.toml" . }}
+EOF
+
+echo "Installing tools with mise..."
+mise install --yes
+mise reshim
+{{- else -}}
+SYSTEM_DATA_DIR=/usr/local/share/mise
+
 # The system config: lowest precedence in mise's chain, and read by every user
 # on the box including root. A user's own ~/.config/mise/config.toml still
 # wins, so per-project and per-user pins keep working.
 echo "Writing /etc/mise/config.toml..."
 sudo mkdir -p /etc/mise
 sudo tee /etc/mise/config.toml >/dev/null <<'EOF'
-# Generated from .chezmoidata/packages.yaml by chezmoi -- edit there, not here.
-# Every tool with a `mise:` field lands below; the rest come from this
-# machine's package manager via chezmoi's package script.
-#
-# Installed by .chezmoiscripts/run_onchange_after_20-mise.sh.tmpl.
-
-[tools]
-{{- range .tools }}
-{{-   if and (not (dig "system" false .)) (or (not (hasKey . "hosts")) (has $.host .hosts)) }}
-{{ dig "mise" .cmd . | quote }} = {{ dig "version" "latest" . | quote }}
-{{-   end }}
-{{- end }}
+{{ template "mise-tools.toml" . }}
 EOF
 
 # Overriding the data dir, rather than `mise install --system`: --system
@@ -89,9 +98,10 @@ if sudo grep -qE '^\s*Defaults\s+secure_path' /etc/sudoers 2>/dev/null; then
   rm -f "$tmp"
 fi
 
-# bash isn't chezmoi-managed, so activate mise by appending to the user's
-# existing ~/.bashrc instead of overwriting it.
+# bash isn't chezmoi-managed on this host, so activate mise by appending to the
+# user's existing ~/.bashrc instead of overwriting it.
 MISE_ACTIVATE_LINE='eval "$(mise activate bash)"'
 if [ -f "$HOME/.bashrc" ] && ! grep -qF "$MISE_ACTIVATE_LINE" "$HOME/.bashrc"; then
   printf '\n%s\n' "$MISE_ACTIVATE_LINE" >> "$HOME/.bashrc"
 fi
+{{- end }}

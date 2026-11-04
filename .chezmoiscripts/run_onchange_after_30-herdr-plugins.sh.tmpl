@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Installs the herdr plugins in ~/.config/herdr/plugins.list. An `after`
+# script so the list, and the mise tools the plugins shell out to, are in place.
+#
+# run_onchange_ with the hash below: re-runs only when the list changes, since
+# `herdr plugin install` re-clones unconditionally.
+#
+# plugins.list hash: {{ include "dot_config/herdr/plugins.list" | sha256sum }}
+set -euo pipefail
+
+# mise's shims, wherever this host installs them; see the mise script.
+PATH="/usr/local/share/mise/shims:${MISE_DATA_DIR:-$HOME/.local/share/mise}/shims:/usr/local/bin:$HOME/.local/bin:$PATH"
+
+if ! command -v herdr >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+  echo "herdr or jq is not installed; skipping herdr plugins." >&2
+  exit 0
+fi
+
+# A registration carried over from another machine points at a path that does
+# not exist here; herdr keeps it but cannot load it. Drop those so the install
+# below re-resolves against this filesystem.
+herdr plugin list --json 2>/dev/null |
+  jq -r '.result.plugins[] | "\(.plugin_id)\t\(.plugin_root)"' 2>/dev/null |
+  while IFS=$'\t' read -r id root; do
+    if [ -z "$id" ] || [ -d "$root" ]; then continue; fi
+    echo "Dropping stale herdr plugin registration: $id"
+    herdr plugin uninstall "$id" >/dev/null 2>&1 || true
+  done
+
+while read -r repo; do
+  case "$repo" in "" | \#*) continue ;; esac
+  herdr plugin install "$repo" --yes
+done <"$HOME/.config/herdr/plugins.list"

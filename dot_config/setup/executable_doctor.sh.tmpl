@@ -15,10 +15,11 @@ check() { if have "$1"; then report "$1" ok "$2"; else report "$1" MISSING "$2";
 {{- range .tools }}
 {{-   if or (not (hasKey . "hosts")) (has $.host .hosts) }}{{ $tools = append $tools . }}{{ end }}
 {{- end }}
-# cmd|mise name, empty for a system package|minimum version|what needs it
+# cmd|mise name, empty for a system package|minimum version|what needs it|
+# shell test for "installed", if not `command -v cmd`
 REQUIRED="
 {{- range $tools }}
-{{ .cmd }}|{{ if not (dig "system" false .) }}{{ dig "mise" .cmd . }}{{ end }}|{{ dig "minversion" "" . }}|{{- $c := .cmd }}{{ $needs := list }}{{ range $tools }}{{ if has $c (dig "deps" (list) .) }}{{ $needs = append $needs .cmd }}{{ end }}{{ end }}{{ join ", " $needs }}
+{{ .cmd }}|{{ if not (dig "system" false .) }}{{ dig "mise" .cmd . }}{{ end }}|{{ dig "minversion" "" . }}|{{- $c := .cmd }}{{ $needs := list }}{{ range $tools }}{{ if has $c (dig "deps" (list) .) }}{{ $needs = append $needs .cmd }}{{ end }}{{ end }}{{ join ", " $needs }}|{{ dig "check" "" . }}
 {{- end }}
 "
 
@@ -36,8 +37,13 @@ echo
 PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
 if have mise; then
   report mise ok "$(mise --version 2>/dev/null | head -1)"
+{{- if eq .host "devpod" }}
+  # Tools are installed per-user here; see run_onchange_after_20-mise.sh.tmpl.
+  PATH="${MISE_DATA_DIR:-$HOME/.local/share/mise}/shims:$PATH"
+{{- else }}
   # Tools are installed system-wide; see run_onchange_after_20-mise.sh.tmpl.
   PATH="${MISE_SYSTEM_DATA_DIR:-/usr/local/share/mise}/shims:$PATH"
+{{- end }}
 else
   report mise MISSING "installs every tool marked (mise) below"
 fi
@@ -53,8 +59,12 @@ version_lt() {
 }
 
 echo "Required, and what needs it..."
-while IFS='|' read -r cmd misename want needs; do
+while IFS='|' read -r cmd misename want needs check; do
   [ -z "$cmd" ] && continue
+  if [ -n "$check" ]; then
+    if sh -c "$check" >/dev/null 2>&1; then report "$cmd" ok "$needs"; else report "$cmd" MISSING "$needs"; fi
+    continue
+  fi
   # Where it should have come from, so a missing one points at the right script.
   src="${misename:+(mise) }"
   if have "$cmd"; then
@@ -89,11 +99,15 @@ case "$(uname -s)" in
     fi
     ;;
   Linux)
+{{- if eq .host "devpod" }}
+    report clipboard ok "nvim yanks over OSC 52 (lua/personal/devpod.lua)"
+{{- else }}
     if have xclip || have xsel || have wl-copy; then
       report clipboard ok "'\"+y' clipboard yank in nvim"
     else
       report clipboard MISSING "install xclip (X11) or wl-clipboard (Wayland)"
     fi
+{{- end }}
     ;;
 esac
 

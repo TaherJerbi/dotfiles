@@ -43,3 +43,6 @@ require('conform').setup {
     markdown = { 'prettierd' },
   },
 }
+
+-- Save without triggering format-on-save (skips all BufWritePre autocmds).
+vim.keymap.set('n', '<leader>W', '<cmd>noautocmd write<cr>', { desc = '[W]rite without formatting' })

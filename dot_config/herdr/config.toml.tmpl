@@ -1,8 +1,17 @@
-onboarding = false
 # herdr configuration
+
+# First-run notification setup already chosen; don't show it again.
+onboarding = false
 
 [theme]
 name = "terminal"
+
+{{ if eq .host "devpod" -}}
+[terminal]
+# ttyd doesn't export SHELL, and herdr's fallback when $SHELL is unset is
+# /bin/sh — so name bash explicitly.
+default_shell = "/bin/bash"
+{{- end }}
 
 [keys]
 # Prefix key to enter prefix mode (default: "ctrl+b")
@@ -28,3 +37,12 @@ command = "herdr-workspace-switcher"
 description = "workspace / directory switcher"
 width = "70%"
 height = "70%"
+
+# worktrunk's picker on the built-in worktree key, so no other default changes.
+# A [[keys.command]] silently wins over a default -- `herdr config check` only
+# reports collisions between two explicit entries.
+[[keys.command]]
+key = "prefix+shift+g"
+type = "plugin_action"
+command = "worktrunk.open"
+description = "worktree: switch or create"

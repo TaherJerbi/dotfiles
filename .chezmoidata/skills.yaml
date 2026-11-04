@@ -1,0 +1,9 @@
+# Skills in dot_agents/skills/ that only some machines get, by host
+# identity. A skill not listed here goes to every machine.
+#
+# Read by .chezmoiignore (skips the skill elsewhere) and by
+# .chezmoiscripts/run_onchange_after_30-skill-links.sh.tmpl (links it into each
+# agent harness).
+skillhosts:
+  # Drives this machine's keyd + KDE setup.
+  hyper-shortcut: [cachyos]

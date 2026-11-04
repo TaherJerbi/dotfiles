@@ -10,4 +10,7 @@
 .config/host
 
 # mise's tool list moved to /etc/mise/config.toml so root shares the installs.
+# Not on the devpod, which installs per-user and generates this file.
+{{ if ne .host "devpod" }}
 .config/mise/config.toml
+{{ end }}

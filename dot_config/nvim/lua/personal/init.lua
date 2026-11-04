@@ -1,3 +1,6 @@
+-- Host-specific overrides, present only where chezmoi installs them.
+if vim.uv.fs_stat(vim.fn.stdpath 'config' .. '/lua/personal/devpod.lua') then require 'personal.devpod' end
+
 vim.opt.relativenumber = true
 vim.o.colorcolumn = '100'
 
@@ -26,3 +29,4 @@ require 'personal.plugins.formatting'
 require 'personal.plugins.treesitter'
 require 'personal.plugins.telescope'
 require 'personal.plugins.nvim-tree'
+require 'personal.plugins.md-render'

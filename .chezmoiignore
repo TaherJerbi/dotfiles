@@ -8,9 +8,6 @@
 # never committed. Create it by hand on a new box.
 .config/fish/conf.d/local.fish
 
-# Written by vim.pack when plugins are updated.
-.config/nvim/nvim-pack-lock.json
-
 # Karabiner-Elements' own rolling backups of karabiner.json.
 .config/karabiner/automatic_backups
 
@@ -24,6 +21,12 @@
 .config/herdr/*.sock
 .config/herdr/.plugins.lock
 .config/herdr/session.json
+# herdr's plugin registry and clones, built from plugins.list.
+.config/herdr/plugins.json
+.config/herdr/plugins
+
+# Machine-local bash config (work env, aliases, secrets); never committed.
+.config/bash/local.bash
 
 # Alacritty's auto-generated config-migration backups.
 .config/alacritty/*.bak
@@ -34,25 +37,42 @@
 {{ end }}
 
 # My skills live in ~/.agents/skills so any agent harness can use them; each
-# harness gets a symlink to them (~/.claude/skills/<name>). Skills installed
-# by the `skills` CLI (npx skills) are its business, not mine.
+# harness gets a symlink to them (~/.claude/skills/<name>), made by
+# run_onchange_after_30-skill-links.sh. Skills installed by the `skills` CLI
+# (npx skills) are its business, not mine.
 .agents/.skill-lock.json
 .agents/skills/herdr
 
 # Claude Code keeps credentials, chat history and session state next to its
-# config. Only settings.json, the status line and my skill links are tracked; this keeps a
-# stray `chezmoi add ~/.claude` from picking up the rest.
+# config. Only settings.json and the status line are tracked; this keeps a
+# stray `chezmoi add ~/.claude` from picking up the rest, including skills
+# that aren't mine (~/.claude/skills/synced, the work monorepo's) and work-only
+# files kept untracked on purpose (CLAUDE.md, hades-pages).
 .claude/*
 !.claude/settings.json
 !.claude/statusline.sh
-!.claude/skills
-.claude/skills/synced
-.claude/skills/herdr
 
-# hyper-shortcut drives this machine's keyd + KDE setup.
-{{ if ne .host "cachyos" }}
-.agents/skills/hyper-shortcut
-.claude/skills/hyper-shortcut
+# Skills only some machines get; see .chezmoidata/skills.yaml.
+{{- range $name, $hosts := .skillhosts }}
+{{-   if not (has $.host $hosts) }}
+.agents/skills/{{ $name }}
+{{-   end }}
+{{- end }}
+
+# The devpod: bash rather than fish, a browser terminal (ttyd) rather than
+# Alacritty, and a pod start hook.
+{{ if eq .host "devpod" }}
+.config/alacritty
+.config/fish
+{{ else }}
+.bashrc
+.bash_aliases
+.inputrc
+.ttyd.yaml
+.poseidon_init
+.config/setup/devpod-deps.sh
+.config/nvim/osc52copy.sh
+.config/nvim/lua/personal/devpod.lua
 {{ end }}
 
 # Repo documentation, not a dotfile. Without this chezmoi would write it to

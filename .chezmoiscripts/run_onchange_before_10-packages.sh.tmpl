@@ -1,77 +1,22 @@
 #!/usr/bin/env bash
 # Installs the pieces mise has no entry for -- a C toolchain, the login shell,
-# the GUI terminal -- plus mise itself. Everything else is in
-# /etc/mise/config.toml, installed by run_onchange_after_20-mise.sh.
+# the GUI terminal -- plus mise itself. Everything else goes through mise,
+# installed by run_onchange_after_20-mise.sh.
 # Report-only counterpart: ~/.config/setup/doctor.sh.
 set -euo pipefail
 {{ $fam := .pkgfamily -}}
 {{ $pm := dig $fam (dict) .packagemanagers -}}
-{{/* Tools this host wants: everything without a `hosts` list, plus the ones
-     naming it. Kept whole, because a mise-managed tool can still be the
-     reason a system package is needed (nvim needs cc). */}}
-{{- $tools := list }}
-{{- range .tools }}
-{{-   if or (not (hasKey . "hosts")) (has $.host .hosts) }}{{ $tools = append $tools . }}{{ end }}
-{{- end }}
 
-# Host: {{ .host }}   osid: {{ .osid }}   packages: {{ $fam | default "unknown -- no package manager" }}
-PM={{ dig "name" "" $pm | quote }}
-{{ if hasKey $pm "refresh" -}}
-refresh_pkgs() { {{ $pm.refresh }}; }
-{{- else -}}
-refresh_pkgs() { :; }
-{{- end }}
-{{ if hasKey $pm "install" -}}
-install_pkgs() { {{ $pm.install }} "$@"; }
-{{- else -}}
-install_pkgs() { :; }
-{{- end }}
+{{ template "system-packages.sh" . }}
 
-# cmd|package|what needs it
-DEPS="
-{{- range $tools }}
-{{- $cask := and (hasKey . "cask") (eq $fam "brew") -}}
-{{- if and (dig "system" false .) (not $cask) }}
-{{ .cmd }}|{{ if hasKey . "pkg" }}{{ dig $fam (dig "default" .cmd .pkg) .pkg }}{{ else }}{{ .cmd }}{{ end }}|{{- $c := .cmd }}{{ $needs := list }}{{ range $tools }}{{ if has $c (dig "deps" (list) .) }}{{ $needs = append $needs .cmd }}{{ end }}{{ end }}{{ join ", " $needs }}
-{{- end }}
-{{- end }}
-"
 {{ if eq $fam "brew" -}}
 CASKS="
-{{- range $tools }}
-{{- if hasKey . "cask" }}
+{{- range .tools }}
+{{- if and (hasKey . "cask") (or (not (hasKey . "hosts")) (has $.host .hosts)) }}
 {{ .cmd }}|{{ if hasKey . "pkg" }}{{ dig $fam (dig "default" .cmd .pkg) .pkg }}{{ else }}{{ .cmd }}{{ end }}
 {{- end }}
 {{- end }}
 "
-{{ end }}
-have_cmd() { command -v "$1" >/dev/null 2>&1; }
-
-# Space-separated, not an array: /bin/bash on macOS is 3.2, where an empty
-# array under `set -u` is an error.
-missing=""
-while IFS='|' read -r cmd pkg needs; do
-  [ -z "$cmd" ] && continue
-  have_cmd "$cmd" && continue
-  echo "missing: $cmd${needs:+ (needed by $needs)}"
-  missing="$missing $pkg"
-done <<EOF
-$DEPS
-EOF
-
-if [ -n "$missing" ]; then
-  if [ -n "$PM" ]; then
-    echo "Installing via $PM:$missing"
-    refresh_pkgs
-    install_pkgs $missing
-  else
-    echo "No package manager known for this machine; install by hand:$missing" >&2
-    echo "To teach chezmoi about it, add its ID to \$pkgfamily in .chezmoi.toml.tmpl" >&2
-    echo "and a packagemanagers entry in .chezmoidata/packages.yaml." >&2
-  fi
-fi
-
-{{ if eq $fam "brew" -}}
 while IFS='|' read -r cmd pkg; do
   [ -z "$cmd" ] && continue
   have_cmd "$cmd" && continue
@@ -82,6 +27,15 @@ $CASKS
 EOF
 {{ end -}}
 
+{{ if eq .host "devpod" -}}
+# mise carries every other tool, so it has to exist before the after-script
+# runs. On the devpod it lives under $HOME: only /mnt/persistent (= $HOME)
+# survives a pod rebuild, so /usr/local/bin would lose it.
+if ! command -v mise >/dev/null 2>&1 && [ ! -x "$HOME/.local/bin/mise" ]; then
+  echo "missing: mise (installs every other tool)"
+  curl -fsSL https://mise.run | sh
+fi
+{{- else -}}
 # mise carries every other tool, so it has to exist before the after-script
 # runs. It goes somewhere root can reach: the after-script installs tools
 # system-wide with sudo, and root's PATH is not the user's.
@@ -102,3 +56,4 @@ if [ -z "$mise_path" ] && [ ! -x /usr/local/bin/mise ]; then
   curl -fsSL https://mise.run | sudo MISE_INSTALL_PATH=/usr/local/bin/mise sh
 {{- end }}
 fi
+{{- end }}

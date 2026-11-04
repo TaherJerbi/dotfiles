@@ -1,0 +1,6 @@
+# Herdr plugins, one OWNER/REPO per line. Tracked source for herdr's own
+# plugins.json, which holds machine-absolute paths; installed by
+# .chezmoiscripts/run_onchange_after_30-herdr-plugins.sh.tmpl.
+
+# Worktree switch/create picker. Shells out to `wt` (mise) and `fzf`.
+devashish2203/herdr-worktrunk

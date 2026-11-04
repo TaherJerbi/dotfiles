@@ -11,10 +11,12 @@ Skills are kept harness-agnostic:
 - Each agent harness gets a relative symlink to it. For Claude Code that's
   `~/.claude/skills/<name>` → `../../.agents/skills/<name>`.
 
-chezmoi's source dir is `~/.local/share/chezmoi` (run `chezmoi source-path` to
-confirm). There the skill is `dot_agents/skills/<name>/` and the Claude link is
-`dot_claude/skills/symlink_<name>`. Only skills the user names get synced;
-never add a whole `skills/` folder.
+chezmoi's source dir is `~/.local/share/chezmoi`, or `/mnt/persistent/dotfiles`
+on the devpod (run `chezmoi source-path` to confirm). There the skill is
+`dot_agents/skills/<name>/`. The Claude link isn't tracked:
+`run_onchange_after_30-skill-links.sh` creates it on `chezmoi apply` for every
+skill in that directory. Only skills the user names get synced; never add a
+whole `skills/` folder.
 
 **The dotfiles repo (github.com/taherjerbi/dotfiles) is public.** Whatever is
 added is published on the next push.
@@ -25,9 +27,12 @@ added is published on the next push.
 - Skills installed by the `skills` CLI (`npx skills`). They're listed in
   `~/.agents/.skill-lock.json` (e.g. `herdr`), and that tool installs and
   updates them.
+- Symlinks into another repo, like the devpod's links into
+  `/opt/ff/tools/claude_code/skills/`: that repo owns them.
+- Work-only skills on the devpod (e.g. `artifact-private`, `artifact-shared`),
+  which name internal hosts. They stay untracked.
 
-These are already in `.chezmoiignore`. If the user asks for one, explain why
-and don't add it.
+If the user asks for one, explain why and don't add it.
 
 ## Steps
 
@@ -40,7 +45,8 @@ and don't add it.
      ln -s ../../.agents/skills/<name> ~/.claude/skills/<name>
      ```
    - Make sure `~/.claude/skills/<name>` is a symlink to it either way
-     (`ls -la ~/.claude/skills`); create it with the `ln -s` above if missing.
+     (`ls -la ~/.claude/skills`); create it with the `ln -s` above if missing,
+     so it works before the next `chezmoi apply`.
 
 2. **See if it's already tracked**: `chezmoi managed | grep "skills/<name>"`.
    - Already tracked: the user probably edited it locally. Show
@@ -54,43 +60,38 @@ and don't add it.
    `/home/cronlab` are fine. If something sensitive turns up, stop and tell the
    user what and where; don't add the skill until they decide.
 
-4. **Ask whether it's machine-specific** if the content suggests it (it
-   mentions KDE, keyd, macOS-only tools, a specific GPU, local paths that only
-   exist on one box). If so, add a host gate to `.chezmoiignore` inside the
-   existing `hyper-shortcut` block or a new one, covering both paths:
+4. **Ask which machines get it** if the user hasn't said and the content
+   suggests it's machine-specific (it mentions KDE, keyd, macOS-only tools,
+   work tooling, local paths that only exist on one box). If it is, add it to
+   `.chezmoidata/skills.yaml` with the hosts that get it:
+   ```yaml
+   skillhosts:
+     <name>: [cachyos]
    ```
-   {{ if ne .host "cachyos" }}
-   .agents/skills/<name>
-   .claude/skills/<name>
-   {{ end }}
-   ```
-   Hosts are `macos`, `cachyos`, `parrotos`, `other` (current one is in
-   `~/.config/chezmoi/chezmoi.toml`). Prefer `.chezmoi.os` (`"darwin"`,
-   `"linux"`) when the OS is what decides it. Skip the question when the skill
-   is plainly portable.
+   A skill not listed goes everywhere, so a shared skill needs no entry. Hosts
+   are `macos`, `cachyos`, `parrotos`, `devpod`, `other` (the current one is in
+   `~/.config/chezmoi/chezmoi.toml`). Skip the question when the skill is
+   plainly portable.
 
-5. **Add both the skill and the link**:
-   ```
-   chezmoi add ~/.agents/skills/<name> ~/.claude/skills/<name>
-   ```
-   Check `dot_claude/skills/symlink_<name>` contains
-   `../../.agents/skills/<name>`.
+5. **Add the skill**: `chezmoi add ~/.agents/skills/<name>`. Not the
+   `~/.claude/skills/<name>` link; the links script owns it.
 
 6. **Verify**:
-   - `chezmoi managed | grep "skills/<name>"` lists both
-     `.agents/skills/<name>/...` and `.claude/skills/<name>`.
-   - `chezmoi diff` is empty for them.
+   - `chezmoi managed | grep "skills/<name>"` lists `.agents/skills/<name>/...`.
+   - `chezmoi diff` is empty for it, apart from the links script, which re-runs
+     because the skill list changed.
    - `git -C "$(chezmoi source-path)" status --short` shows only the expected
      paths.
 
-7. **Commit, don't push.** Commit just this skill and its link (plus
-   `.chezmoiignore` if it changed) in the source dir, with a message like
-   `Sync <name> skill`. Then tell the user it's committed and ask before
+7. **Commit, don't push.** Commit just this skill (plus
+   `.chezmoidata/skills.yaml` if it changed) in the source dir, with a message
+   like `Sync <name> skill`. Then tell the user it's committed and ask before
    pushing, since the repo is public.
 
 ## Removing a skill from sync
 
-`chezmoi forget ~/.agents/skills/<name> ~/.claude/skills/<name>` stops tracking
-both but leaves the local copies. Other machines keep theirs too unless both
-paths are also listed in `.chezmoiremove`; ask whether they want that. Remove
-any host gate for it from `.chezmoiignore`, then commit.
+`chezmoi forget ~/.agents/skills/<name>` stops tracking it but leaves the
+local copy and link. Other machines keep theirs too unless
+`.agents/skills/<name>` and `.claude/skills/<name>` are listed in
+`.chezmoiremove`; ask whether they want that. Remove its
+`.chezmoidata/skills.yaml` entry if it has one, then commit.

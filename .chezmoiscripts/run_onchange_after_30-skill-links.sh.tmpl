@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Links every skill this machine gets from ~/.agents/skills into Claude Code,
+# as ~/.claude/skills/<name> -> ../../.agents/skills/<name>. A script rather
+# than one symlink_ file per skill, so adding a skill is just adding its
+# directory. Which skills a machine gets: .chezmoidata/skills.yaml.
+#
+# run_onchange_: the skill list below is the content, so this re-runs only when
+# a skill is added or removed.
+set -euo pipefail
+
+SKILLS="
+{{- range glob (joinPath .chezmoi.sourceDir "dot_agents/skills/*") }}
+{{-   $name := base . }}
+{{-   $hosts := dig $name (list) $.skillhosts }}
+{{-   if or (not $hosts) (has $.host $hosts) }}
+{{ $name }}
+{{-   end }}
+{{- end }}
+"
+
+mkdir -p "$HOME/.claude/skills"
+for name in $SKILLS; do
+  link="$HOME/.claude/skills/$name"
+  target="../../.agents/skills/$name"
+  if [ -L "$link" ] || [ ! -e "$link" ]; then
+    ln -sfn "$target" "$link"
+  # A real directory: Claude Code creates new skills there. Replace it only if
+  # it's the same as the tracked copy, so local edits are never lost.
+  elif diff -rq "$link" "$HOME/.agents/skills/$name" >/dev/null 2>&1; then
+    rm -rf "$link"
+    ln -s "$target" "$link"
+  else
+    echo "~/.claude/skills/$name is a directory that differs from ~/.agents/skills/$name; not linking it." >&2
+  fi
+done

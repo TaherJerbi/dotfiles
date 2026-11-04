@@ -1,6 +1,6 @@
 {{- /* Prompted once at `chezmoi init`, then stored in
        ~/.config/chezmoi/chezmoi.toml. Selects fish/host/<name>/. */ -}}
-{{- $host := promptStringOnce . "host" "Host identity (macos/cachyos/parrotos/other)" -}}
+{{- $host := promptStringOnce . "host" "Host identity (macos/cachyos/parrotos/devpod/other)" -}}
 
 {{- /* "darwin", "linux-parrot", "linux-cachyos".
        https://www.chezmoi.io/user-guide/machines/linux/ */ -}}
@@ -29,6 +29,10 @@
 {{-     end -}}
 {{-   end -}}
 {{- end -}}
+
+{{- /* Kept so a source dir other than ~/.local/share/chezmoi (the devpod's
+       /mnt/persistent/dotfiles, via `chezmoi init --source`) sticks. */}}
+sourceDir = {{ .chezmoi.sourceDir | quote }}
 
 [data]
     host = {{ $host | quote }}
