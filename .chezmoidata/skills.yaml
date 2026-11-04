@@ -7,3 +7,5 @@
 skillhosts:
   # Drives this machine's keyd + KDE setup.
   hyper-shortcut: [cachyos]
+  # Writes to the Obsidian vault on these machines.
+  obsidian-add-note: [macos, cachyos]

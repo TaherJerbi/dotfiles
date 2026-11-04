@@ -52,9 +52,11 @@ hook, runs `~/.config/setup/devpod-deps.sh` to reinstall the apt packages a
 rebuild wipes. It never runs `chezmoi apply`.
 
 The devpod gets bash (`.bashrc`, `.bash_aliases`, `.inputrc`) instead of fish,
-`.ttyd.yaml`, and OSC 52 yanks in nvim (`lua/personal/devpod.lua`). Work-only
+`.ttyd.yaml`, and OSC 52 yanks in nvim (`lua/personal/devpod.lua`). It leaves
+`~/.claude` alone: the pod's tooling owns that symlink, and its settings are
+the devpod's own. Skills are still linked into `~/.claude/skills`. Work-only
 config stays untracked: `~/.config/bash/local.bash` (work env, aliases,
-`HERDR_START_DIR`), `~/.claude/CLAUDE.md` and `~/.claude/hades-pages`. This
+`HERDR_START_DIR`), and everything under `~/.claude`. This
 repo is public.
 
 ## Per-machine config

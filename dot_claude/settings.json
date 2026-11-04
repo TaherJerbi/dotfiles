@@ -7,9 +7,4 @@
     "type": "command",
     "command": "~/.claude/statusline.sh"
   }
-{{- if eq .host "devpod" }},
-  "enabledPlugins": {
-    "clickup-task-intake@leap-tools-claude-plugins": true
-  }
-{{- end }}
 }

@@ -62,6 +62,9 @@
 # The devpod: bash rather than fish, a browser terminal (ttyd) rather than
 # Alacritty, and a pod start hook.
 {{ if eq .host "devpod" }}
+# ~/.claude is a symlink the pod's tooling owns (to ~/.claude-subscription);
+# chezmoi would replace it with a directory. Skills still get linked into it.
+.claude
 .config/alacritty
 .config/fish
 .config/rofimoji
