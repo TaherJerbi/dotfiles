@@ -67,6 +67,11 @@ sudo_mise install --yes
 # these; fish itself uses `mise activate` from config.fish.
 sudo_mise reshim
 
+# Plugin-backed tools (eza is vfox:eza) need the plugin in the *user's* data
+# dir too, or every user-run mise warns "missing: eza@latest" despite the
+# system install -- installs are shared, plugins are not.
+mise plugins install --all
+
 # sudo on Debian and friends replaces PATH with secure_path, so the shims are
 # invisible to it however the caller's PATH is set. macOS ships no secure_path
 # and needs none of this.
