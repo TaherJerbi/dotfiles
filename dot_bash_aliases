@@ -65,8 +65,11 @@ alias grhh='git reset --hard HEAD'
 alias gf='git fetch'
 alias gfa='git fetch --all'
 
-# Work-specific aliases (repo paths, dev servers) live in the untracked
-# ~/.config/bash/local.bash, sourced by .bashrc.
+# ff navigation and server shortcuts (site-specific)
+alias cdff='cd /opt/ff'
+alias cdmy='cd /opt/ff/web/my'
+alias mysp='/opt/ff/web/runservers.py --web_apps my --skip_vendor_scripts --backend production'
+alias myss='/opt/ff/web/runservers.py --web_apps my --skip_vendor_scripts --backend staging'
 
 # nerd fonts test
 alias test-nerdfont='curl https://raw.githubusercontent.com/ryanoasis/nerd-fonts/master/bin/scripts/test-fonts.sh | bash'

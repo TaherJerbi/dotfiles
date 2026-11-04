@@ -36,6 +36,11 @@ export VISUAL=nvim
 # which machine this is, like fish's conf.d/00-host.fish; baked in by chezmoi
 export DOTS_HOST={{ .host | quote }}
 
+# dev pod env
+if [ -f /opt/ff/tools/shell/configure_local_env.sh ]; then
+	source /opt/ff/tools/shell/configure_local_env.sh
+fi
+
 export TERM=xterm-256color
 export COLORTERM=truecolor
 export TZ=America/Toronto
@@ -94,14 +99,13 @@ command -v mise &>/dev/null && eval "$(mise activate bash)"
 # zoxide: record every cd, so herdr-workspace-switcher can offer those dirs
 command -v zoxide &>/dev/null && eval "$(zoxide init bash)"
 
-# machine-local config, deliberately untracked: work env setup and aliases,
-# secrets, and HERDR_START_DIR for the herdr launch below
+# machine-local config, deliberately untracked (secrets)
 if [ -f ~/.config/bash/local.bash ]; then
 	. ~/.config/bash/local.bash
 fi
 
 # open herdr if not already inside a herdr pane
 if command -v herdr &>/dev/null && [ -z "$HERDR_ENV" ]; then
-	cd "${HERDR_START_DIR:-$HOME}" 2>/dev/null
+	cd /mnt/persistent/ff 2>/dev/null
 	exec herdr
 fi

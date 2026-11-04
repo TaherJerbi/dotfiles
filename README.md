@@ -55,9 +55,8 @@ The devpod gets bash (`.bashrc`, `.bash_aliases`, `.inputrc`) instead of fish,
 `.ttyd.yaml`, and OSC 52 yanks in nvim (`lua/personal/devpod.lua`). It leaves
 `~/.claude` alone: the pod's tooling owns that symlink, and its settings are
 the devpod's own. Skills are still linked into `~/.claude/skills`. Work-only
-config stays untracked: `~/.config/bash/local.bash` (work env, aliases,
-`HERDR_START_DIR`), and everything under `~/.claude`. This
-repo is public.
+config that names internal hosts stays untracked, since this repo is public:
+everything under `~/.claude`, and `~/.config/bash/local.bash` for secrets.
 
 ## Per-machine config
 
