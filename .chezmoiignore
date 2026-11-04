@@ -64,6 +64,8 @@
 {{ if eq .host "devpod" }}
 .config/alacritty
 .config/fish
+.config/rofimoji
+.config/rofimoji.rc
 {{ else }}
 .bashrc
 .bash_aliases
