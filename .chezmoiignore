@@ -40,10 +40,11 @@
 .agents/skills/herdr
 
 # Claude Code keeps credentials, chat history and session state next to its
-# config. Only settings.json and my skill links are tracked; this keeps a
+# config. Only settings.json, the status line and my skill links are tracked; this keeps a
 # stray `chezmoi add ~/.claude` from picking up the rest.
 .claude/*
 !.claude/settings.json
+!.claude/statusline.sh
 !.claude/skills
 .claude/skills/synced
 .claude/skills/herdr
