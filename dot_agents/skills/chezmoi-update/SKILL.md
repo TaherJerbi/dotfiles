@@ -1,12 +1,12 @@
 ---
 name: chezmoi-update
-description: "Check the user's chezmoi dotfiles for upstream changes, preview exactly what applying them would do on this machine, and tell the user which commands to run. Use when the user asks to update, sync or pull their dotfiles or chezmoi, or asks whether there are dotfile updates."
+description: "Check the user's chezmoi dotfiles for upstream changes, preview exactly what applying them would do on this machine, and offer to pull and apply them. Use when the user asks to update, sync or pull their dotfiles or chezmoi, or asks whether there are dotfile updates."
 ---
 
 # Check for chezmoi updates
 
-Preview only: fetch and compare, never pull, apply, commit or push. The user
-runs the commands you give them.
+Preview first: fetch and compare, and change nothing until the user says to
+run the update (step 6). Never commit or push.
 
 ## 1. Find the repo and host
 
@@ -89,3 +89,15 @@ Adjust the commands to what you found:
   before pulling, or the apply overwrites it.
 - **Scripts that need network access in an offline sandbox:** say so, and
   have the user run `chezmoi apply` themselves (e.g. `! chezmoi apply`).
+
+End the report by offering to run these commands.
+
+## 6. Run on request
+
+Only after the user says yes, run the commands from the report in order, and
+stop at the first failure and report it. Leave steps that need the user to
+them: committing or stashing local edits, `re-add` decisions, and scripts
+that need sudo or network access you don't have.
+
+Then confirm with `chezmoi status` (empty means everything applied) and
+report in a line or two what changed and anything left for the user.
