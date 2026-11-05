@@ -146,10 +146,10 @@ Agent skills live in `dot_agents/skills/<name>/` (`~/.agents/skills`), and
 `run_onchange_after_30-skill-links.sh` links each into `~/.claude/skills`.
 Every machine gets every skill except those listed in
 `.chezmoidata/skills.yaml` with the hosts that get them. The
-`chezmoi-sync-skill` skill does both steps.
+`chezmoi-skills-add` skill does both steps.
 
 Skills from the `skills` CLI (e.g. `npx skills add mattpocock/skills -g`) are
-copied in like any other. The `chezmoi-update-skills` skill updates them on a
+copied in like any other. The `chezmoi-skills-update` skill updates them on a
 machine where the CLI installed them and copies the changes into chezmoi.
 The mattpocock skills in `dot_agents/skills/` are from
 [mattpocock/skills](https://github.com/mattpocock/skills).

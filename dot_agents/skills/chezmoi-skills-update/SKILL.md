@@ -1,5 +1,5 @@
 ---
-name: chezmoi-update-skills
+name: chezmoi-skills-update
 description: "Update the agent skills installed by the `skills` CLI (npx skills, e.g. mattpocock/skills) and copy the updates into the user's chezmoi dotfiles so every machine gets them. Use when the user asks to update, upgrade or refresh their skills. For pulling dotfile changes from the repo, use chezmoi-update instead."
 ---
 
@@ -37,13 +37,13 @@ and ask the user about each difference:
 - **New upstream**: to add it, have them run
   `! npx skills add <source> -g -y -a claude-code -s <name>`, then
   `chezmoi add ~/.agents/skills/<name>`.
-- **Gone upstream**: to drop it, follow the chezmoi-sync-skill skill's
+- **Gone upstream**: to drop it, follow the chezmoi-skills-add skill's
   "Removing a skill from sync", then have them run
   `! npx skills remove -g -y -s <name>` to delete the local copy.
 
 ## 4. Copy the updates into chezmoi
 
-Run `~/.agents/skills/chezmoi-update-skills/skills-sync.sh`. It replaces the
+Run `~/.agents/skills/chezmoi-skills-update/skills-sync.sh`. It replaces the
 source copy of every tracked CLI skill, so files an update added or removed are
 picked up too, and prints `git status` for the skills.
 

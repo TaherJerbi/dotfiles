@@ -1,5 +1,5 @@
 ---
-name: chezmoi-sync-skill
+name: chezmoi-skills-add
 description: "Add an agent skill to the user's chezmoi dotfiles so it syncs to their other machines, or push local edits of an already-synced skill back into chezmoi. Use when the user asks to sync, track, add or save a skill to chezmoi or their dotfiles. Skills are only synced when the user explicitly asks."
 ---
 
@@ -34,7 +34,7 @@ If the user asks for one, explain why and don't add it.
 
 Other `skills` CLI skills (listed in `~/.agents/.skill-lock.json`, e.g. the
 mattpocock/skills set) are synced like any other skill. To update them, use
-the chezmoi-update-skills skill instead of step 2's `re-add`.
+the chezmoi-skills-update skill instead of step 2's `re-add`.
 
 ## Steps
 

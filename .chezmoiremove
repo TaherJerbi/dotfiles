@@ -14,3 +14,7 @@
 {{ if ne .host "devpod" }}
 .config/mise/config.toml
 {{ end }}
+
+# Renamed to chezmoi-skills-add.
+.agents/skills/chezmoi-sync-skill
+.claude/skills/chezmoi-sync-skill
