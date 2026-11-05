@@ -24,15 +24,18 @@ added is published on the next push.
 ## Never sync
 
 - `~/.claude/skills/synced/`: synced by the user's claude.ai account.
-- Skills installed by the `skills` CLI (`npx skills`). They're listed in
-  `~/.agents/.skill-lock.json` (e.g. `herdr`), and that tool installs and
-  updates them.
+- `herdr`, installed per machine by the `skills` CLI (`npx skills`).
 - Symlinks into another repo, like the devpod's links into
   `/opt/ff/tools/claude_code/skills/`: that repo owns them.
 - Work-only skills on the devpod (e.g. `artifact-private`, `artifact-shared`),
   which name internal hosts. They stay untracked.
 
 If the user asks for one, explain why and don't add it.
+
+Other `skills` CLI skills (listed in `~/.agents/.skill-lock.json`, e.g. the
+mattpocock/skills set) are synced like any other skill. After
+`npx skills update -g`, `~/.config/setup/skills-sync.sh` copies every tracked
+one back into chezmoi; run it instead of step 2's `re-add`.
 
 ## Steps
 

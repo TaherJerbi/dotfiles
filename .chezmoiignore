@@ -38,8 +38,8 @@
 
 # My skills live in ~/.agents/skills so any agent harness can use them; each
 # harness gets a symlink to them (~/.claude/skills/<name>), made by
-# run_onchange_after_30-skill-links.sh. Skills installed by the `skills` CLI
-# (npx skills) are its business, not mine.
+# run_onchange_after_30-skill-links.sh. Skills from the `skills` CLI (npx
+# skills) are copied in too; its lock file and herdr's skill stay per-machine.
 .agents/.skill-lock.json
 .agents/skills/herdr
 

@@ -148,6 +148,11 @@ Every machine gets every skill except those listed in
 `.chezmoidata/skills.yaml` with the hosts that get them. The
 `chezmoi-sync-skill` skill does both steps.
 
+Skills from the `skills` CLI (e.g. `npx skills add mattpocock/skills -g`) are
+copied in like any other. To update them, run `npx skills update -g` on a
+machine where the CLI installed them, then `~/.config/setup/skills-sync.sh`
+to copy the changes into chezmoi, and commit.
+
 ## herdr plugins
 
 `dot_config/herdr/plugins.list` names them, one `OWNER/REPO` per line;
