@@ -1,0 +1,7 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /* The devpod's ~/.claude is a symlink to here that the pod's tooling owns,
+       along with most of this file, so only the settings every host shares
+       are merged into it. */ -}}
+{{- $live := dict -}}
+{{- if .chezmoi.stdin }}{{ $live = fromJson .chezmoi.stdin }}{{ end -}}
+{{- mergeOverwrite $live (includeTemplate "claude-settings.json" . | fromJson) | toPrettyJson }}

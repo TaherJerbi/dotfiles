@@ -1,0 +1,12 @@
+{{- /* This host's settings, then the ones every host shares on top. */ -}}
+{{- $host := `{
+  "model": "opus",
+  "tui": "fullscreen",
+  "theme": "dark",
+  "switchModelsOnFlag": true,
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh"
+  }
+}` | fromJson -}}
+{{- mergeOverwrite $host (includeTemplate "claude-settings.json" . | fromJson) | toPrettyJson }}

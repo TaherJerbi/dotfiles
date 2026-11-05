@@ -20,6 +20,10 @@ prefix = "ctrl+z"
 # Jump back to the last focused pane (unset by default)
 last_pane = "prefix+l"
 
+# prefix+g and prefix+r go to worktrunk's worktree actions below.
+goto = ""
+resize_mode = ""
+
 # Don't prompt for a tab name on creation; tabs get their auto-numbered label
 [ui]
 prompt_new_tab_name = false
@@ -38,11 +42,24 @@ description = "workspace / directory switcher"
 width = "70%"
 height = "70%"
 
-# worktrunk's picker on the built-in worktree key, so no other default changes.
-# A [[keys.command]] silently wins over a default -- `herdr config check` only
-# reports collisions between two explicit entries.
+# worktrunk's worktree actions, which run its hooks. A [[keys.command]]
+# silently wins over a default -- `herdr config check` only reports collisions
+# between two explicit entries -- so the defaults they replace are unset above.
+# prefix+shift+g replaces the built-in new_worktree.
+[[keys.command]]
+key = "prefix+g"
+type = "plugin_action"
+command = "worktrunk.open"
+description = "worktree: switch or create from default branch"
+
 [[keys.command]]
 key = "prefix+shift+g"
 type = "plugin_action"
-command = "worktrunk.open"
-description = "worktree: switch or create"
+command = "worktrunk.open-current"
+description = "worktree: switch or create from current branch"
+
+[[keys.command]]
+key = "prefix+r"
+type = "plugin_action"
+command = "worktrunk.remove"
+description = "worktree: remove"

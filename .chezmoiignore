@@ -70,6 +70,7 @@
 .config/rofimoji
 .config/rofimoji.rc
 {{ else }}
+.claude-subscription
 .bashrc
 .bash_aliases
 .inputrc

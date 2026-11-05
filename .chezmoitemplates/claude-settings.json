@@ -1,0 +1,24 @@
+{{- /* Claude Code settings every host shares, merged into each host's own
+       settings.json: dot_claude/settings.json.tmpl, and on the devpod
+       dot_claude-subscription/modify_settings.json, since the pod's tooling
+       owns that file. Keys here win over the host's. No hooks: work policy
+       allows Claude Code hooks only in the devpod's managed settings. */ -}}
+{
+  "permissions": {
+    "deny": [
+      "NotebookEdit",
+      "DesignSync",
+      "RemoteTrigger",
+      "AskUserQuestion",
+      "EnterPlanMode",
+      "ExitPlanMode",
+      "TaskCreate",
+      "TaskUpdate",
+      "TaskList",
+      "TaskGet",
+      "CronCreate",
+      "CronDelete",
+      "CronList"
+    ]
+  }
+}

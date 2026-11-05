@@ -54,7 +54,9 @@ rebuild wipes. It never runs `chezmoi apply`.
 The devpod gets bash (`.bashrc`, `.bash_aliases`, `.inputrc`) instead of fish,
 `.ttyd.yaml`, and OSC 52 yanks in nvim (`lua/personal/devpod.lua`). It leaves
 `~/.claude` alone: the pod's tooling owns that symlink, and its settings are
-the devpod's own. Skills are still linked into `~/.claude/skills`. Work-only
+the devpod's own, except that the settings every host shares
+(`.chezmoitemplates/claude-settings.json`) are merged into the file it points
+at. Skills are still linked into `~/.claude/skills`. Work-only
 config that names internal hosts stays untracked, since this repo is public:
 everything under `~/.claude`, and `~/.config/bash/local.bash` for secrets.
 
