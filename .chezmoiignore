@@ -80,6 +80,7 @@
 .config/nvim/lua/personal/devpod.lua
 {{ end }}
 
-# Repo documentation, not a dotfile. Without this chezmoi would write it to
-# ~/README.md.
+# Repo documentation, not dotfiles. Without this chezmoi would write them to
+# ~/README.md and ~/LICENSES.
 README.md
+LICENSES
