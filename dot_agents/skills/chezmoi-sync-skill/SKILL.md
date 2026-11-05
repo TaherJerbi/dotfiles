@@ -33,9 +33,8 @@ added is published on the next push.
 If the user asks for one, explain why and don't add it.
 
 Other `skills` CLI skills (listed in `~/.agents/.skill-lock.json`, e.g. the
-mattpocock/skills set) are synced like any other skill. After
-`npx skills update -g`, `~/.config/setup/skills-sync.sh` copies every tracked
-one back into chezmoi; run it instead of step 2's `re-add`.
+mattpocock/skills set) are synced like any other skill. To update them, use
+the chezmoi-update-skills skill instead of step 2's `re-add`.
 
 ## Steps
 
